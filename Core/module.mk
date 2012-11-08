@@ -4,7 +4,6 @@ CORE_PROGNAME          :=
 CORE_LIBNAME           := cored3pd
 CORE_DIRBASE           := $(CORE_MODULENAME)
 
-CORE_EXTRACFLAGS := -fPIC 
 CORE_DL_DEP := 
 CORE_DL_FLAGS := -L$(shell root-config --libdir) -lCore -lMathCore -lTree -lRIO
 
