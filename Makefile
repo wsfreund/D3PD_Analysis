@@ -16,7 +16,7 @@ bin_dir_name := bin
 
 INCFLAGS += -I$(out_inc_dir_name)
 
-CFLAGS += -Wall 
+CFLAGS += -Wall -fPIC
 
 MV := mv
 
