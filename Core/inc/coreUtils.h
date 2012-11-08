@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdio.h>
 #include <iostream>
+#include <limits.h>
 
 // Root includes
 #include "TH1F.h"
