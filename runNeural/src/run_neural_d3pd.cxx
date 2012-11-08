@@ -8,8 +8,8 @@ int main(int argc, char *argv[]){
   running_opts.listFileName = "";
   running_opts.outputFile = std::string("newNet") + currentDateTime() + ".D3PD.root";
   running_opts.fileNN = "net.py";
-  running_opts.mean_trn_ds = -999.;
-  running_opts.std_trn_ds = -999.;
+  running_opts.mean_trn_ds = 0.;
+  running_opts.std_trn_ds = 1.;
 
   try{
     readInputs(argc,argv,running_opts);
