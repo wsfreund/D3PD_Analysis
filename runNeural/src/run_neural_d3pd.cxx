@@ -358,6 +358,7 @@ void normalize(std::vector<float> &rings, const opts &setOpts){
           for (unsigned int counter = 0; counter < rings.size(); ++counter)
             rings[counter]*=sum;
         }
+        break;
       } case standartization:{
         const double &mean_trn_ds = setOpts.mean_trn_ds;
         const double inv_std_trn_ds = (setOpts.std_trn_ds)?(1/setOpts.std_trn_ds):1;
@@ -365,6 +366,7 @@ void normalize(std::vector<float> &rings, const opts &setOpts){
           rings[counter]-=mean_trn_ds;
           rings[counter]*=inv_std_trn_ds;
         }
+        break;
       }
     }
   }
