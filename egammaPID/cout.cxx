@@ -4,9 +4,9 @@ using namespace std;
 
 int main(){
 
-  cout << "Loose = " << egammaPID::ElectronLoose<< endl;
-  cout << "Medium = " << egammaPID::ElectronMedium_WithoutTrackMatch << endl;
-  cout << "Tight = " << egammaPID::ElectronTight_WithoutTrackMatch << endl;
+  cout << "Loose = " << egammaPID::ElectronLoose << endl;
+  cout << "Medium = " << egammaPID::ElectronMedium  << endl;
+  cout << "Tight = " << egammaPID::ElectronTight << endl;
   return 0;
 
 }

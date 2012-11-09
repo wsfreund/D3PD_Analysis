@@ -8,9 +8,11 @@
 
 // Custom includes
 #include "coreUtils.h"
+#include "eg_key.h"
+#include "truth.h"
+#include "Key_t1.h"
 #include "egammaPIDdefs.h"
 #include "egammaD3PD.h"
-#include "Key_t1.h"
 
 // Root includes
 #include "TFile.h"
@@ -72,9 +74,6 @@ public:
   const std::vector<float> *get_nn_thres_for_fixed_std_det_rate() const {return nn_thres_for_fixed_std_det_rate;}  
 
   // Set methods
-  void set_testDsRules(const std::vector<unsigned> &vec);
-  void set_trainSgnIsEM(const unsigned trainSgnIsEM);
-  void set_trainBkgIsEM(const unsigned trainBkgIsEM);
   void set_hgres(const unsigned hgres); 
   void set_nn_loose(const float value);
   void set_nn_medium(const float value);
@@ -110,29 +109,6 @@ public:
   void set_signalPdgId(const Int_t);
   void set_signalMotherPdgId(const Int_t);
 
-  enum TRUTH_TYPE{
-    Electron_type = 11,
-    Foton_type = 22,
-    Z_type = 23,
-    Pion_type = 211,
-    Pion0_type = 111,
-    Kaon_type = 321,
-    Kaon0s_type = 310,
-    Kaon0l_type = 130,
-    Unmatched_type = 0,
-  };
-
-  enum TRUTH_PARTICLE{
-    TruthSignal = 0,
-    Electron = 1,
-    Photon = 2,
-    Pion = 3,
-    Kaon = 4,
-    Other = 5,
-    Unmatched = 6,
-    LastTPart
-  };
-
   ~D3PDAnalysis();
     
 private:
@@ -156,9 +132,8 @@ private:
   void fillParticlesTruthEff();
   void fastFillNeuralHists(egammaD3PD *d3pd);
   void fillHistsFor(egammaD3PD *d3pd);
-  void fillDetailedTruthCounterFor(const TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
+  void fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
       const Float_t el_nnOutput);
-  bool isTestCluster(const unsigned isem, const eg_key::DATASET ds);
 
   // Clear Det and Fa:
   void clearDet();
@@ -201,13 +176,6 @@ private:
   bool doForceRingerThres;
   bool doDetailedTruth; // do Detailed Truth Analysis (check efficiency for pions, kaons, electrons and so on)
   
-  // Test Dataset Rules (if empty, use all dataset)
-  std::vector<unsigned> testDsRules;
-
-  // IsEm masks used to train with dataset:
-  unsigned trainSgnIsEM; 
-  unsigned trainBkgIsEM;
-
   // High resolution binnage histogram for roc:
   unsigned hgres;
 
@@ -322,8 +290,7 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   doTruth(doTruth), debug(debug), doForceRingerThres(doForceRingerThres),
   doDetailedTruth(doDetailedTruth),
   // Members not configurable by user using constructor:
-  testDsRules(0), trainSgnIsEM(egammaPID::ElectronTight_WithoutTrackMatch), 
-  trainBkgIsEM(egammaPID::ElectronLoose), hgres(100000),
+  hgres(100000),
   et_energy_map(0),nn_output_map(0),particles_map(0),
   var_dist_map(0),efficiency_map(0),corr_map(0),
   detailedTruthCounter_map(0),detailedTruthEff_map(0),outFile(0),
@@ -335,7 +302,7 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   etBaseDir(0),partBaseDir(0),nnBaseDir(0),effBaseDir(0),corrBaseDir(0),
   var_special(var_size), alg_special(alg_size), 
   var_units(var_size), stdeg_req(req_size), ring_req(req_size),
-  signalPdgId(Electron_type), signalMotherPdgId(Z_type), 
+  signalPdgId(truth::Electron_type), signalMotherPdgId(truth::Z_type), 
   det_rate(0), fa_rate(0), 
   nn_det_for_fixed_std_fa_rate(0), nn_thres_for_fixed_std_fa_rate(0),
   nn_fa_for_fixed_std_det_rate(0), nn_thres_for_fixed_std_det_rate(0), 
@@ -507,23 +474,6 @@ D3PDAnalysis::~D3PDAnalysis(){
   }
 }
 
-
-const char* make_str(const D3PDAnalysis::TRUTH_PARTICLE p);
-
-inline
-void D3PDAnalysis::set_testDsRules(const std::vector<unsigned> &vec){
-  testDsRules = vec;
-}
-
-inline
-void D3PDAnalysis::set_trainSgnIsEM(const unsigned trainSgnIsEM){
-  this->trainSgnIsEM = trainSgnIsEM;
-}
-
-inline
-void D3PDAnalysis::set_trainBkgIsEM(const unsigned trainBkgIsEM){
-  this->trainBkgIsEM = trainBkgIsEM;
-}
 
 inline
 void D3PDAnalysis::set_hgres(const unsigned hgres) {

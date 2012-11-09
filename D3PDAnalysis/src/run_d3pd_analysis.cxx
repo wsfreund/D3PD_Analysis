@@ -15,8 +15,8 @@ int main(int argc, char *argv[]){
   running_opts.anaName = "CaloRinger_Analysis_ElectronVsJet";
   running_opts.anaDir = "";
   running_opts.high_resolution_bin = 10000;
-  running_opts.signalPdgId = D3PDAnalysis::Electron_type;
-  running_opts.signalMotherPdgId = D3PDAnalysis::Z_type;
+  running_opts.signalPdgId = truth::Electron_type;
+  running_opts.signalMotherPdgId = truth::Z_type;
   running_opts.nn_loose_thres = -0.5;
   running_opts.nn_medium_thres = 0.;
   running_opts.nn_tight_thres = 0.5;
@@ -224,6 +224,10 @@ void help(){
 
   std::cout << "Usage: ./run_d3pd_analysis --signalInput <listFileName> --backgroundInput <listFileName> --options ... \n"
             << "  --options may be one from (> marks default option)/[available options]:\n\n"
+            << "    --anaName [string] > CaloRinger_Analysis_ElectronVsJet"
+            << "      Name on which analysis will be saved. \n\n"
+            << "    --anaDir [string] > <CurrentFolder>"
+            << "      Folder name that analysis will be saved. \n\n"
             << "    --doTruth \n"
             << "      Use truth information on analysis. \n\n"
             << "    --debug \n"

@@ -4,41 +4,6 @@
 //========================================================================
 //========================================================================
 //========================================================================
-inline
-const char* make_str(const D3PDAnalysis::TRUTH_PARTICLE p){
-  switch (p){
-    case D3PDAnalysis::TruthSignal:
-      return "TruthSignal";
-      break;
-    case D3PDAnalysis::Electron:
-      return "Electron";
-      break;
-    case D3PDAnalysis::Photon:
-      return "Photon";
-      break;
-    case D3PDAnalysis::Pion:
-      return "Pion";
-      break;
-    case D3PDAnalysis::Kaon:
-      return "Kaon";
-      break;
-    case D3PDAnalysis::Unmatched:
-      return "Unmatched";
-      break;
-    case D3PDAnalysis::Other:
-      return "Other";
-      break;
-    case D3PDAnalysis::LastTPart:
-      return "LastTPart";
-      break;
-    default:
-      return "#Error";
-  }
-}
-
-//========================================================================
-//========================================================================
-//========================================================================
 void D3PDAnalysis::init(){
 
 #if DEBUG >= DEBUG_MSGS
@@ -393,19 +358,19 @@ void D3PDAnalysis::setDetailedTruthEff(){
     TH1F* hist = new TH1F( 
       (std::string(" Alldata Particles counter Dataset: ") + ds[i] ).c_str(),
       (std::string(" Alldata Particles counter Dataset: ") + ds[i] ).c_str(),
-      LastTPart,TruthSignal,LastTPart);
+      truth::LastTPart,truth::TruthSignal,truth::LastTPart);
     detailedTruthCounter_map->insert(std::make_pair(Key_t1(ds[i]),hist));
     for(size_t m = 0; m < alg_size;++m){
       for(size_t n = eg_key::Loose; n < req_size;++n){
         TH1F* hist = new TH1F( 
           (std::string("Particles counter for ") + alg[m] + " " + req[n] + " for Dataset: " + ds[i] ).c_str(),
           (std::string("Particles counter for ") + alg[m] + " " + req[n] + " for Dataset: " + ds[i] ).c_str(),
-          LastTPart,TruthSignal,LastTPart);
+          truth::LastTPart,truth::TruthSignal,truth::LastTPart);
         detailedTruthCounter_map->insert(std::make_pair(Key_t1(ds[i],alg[m],req[n]),hist));
         TEfficiency *eff_holder = new TEfficiency(
           (std::string("Particles efficiency for ") + alg[m] + " " + req[n] + " for Dataset: " + ds[i] ).c_str(),
           (std::string("Particles efficiency for ") + alg[m] + " " + req[n] + " for Dataset: " + ds[i] ).c_str(),
-          LastTPart,TruthSignal,LastTPart);
+          truth::LastTPart,truth::TruthSignal,truth::LastTPart);
         detailedTruthEff_map->insert(std::make_pair(Key_t1(ds[i],alg[m],req[n]),eff_holder));
       }
     }
@@ -522,7 +487,6 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
       if(doTruth && d3pd==sgn) ds = eg_key::BackgroundFromSignalDs; // Reset ds to decide if it is signal or not
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
       // Use test dataset only:
-      if(!isTestCluster(el_isEM, ds)) continue;
 
       if(doTruth && d3pd==sgn){
         if((*d3pd->el_truth_matched)[index] &&
@@ -589,9 +553,6 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
 
-      // Use test dataset only:
-      if(!isTestCluster(el_isEM, ds)) continue;
-
       // Re-define more useful variables:
       const Float_t &el_nnOutput = (*d3pd->el_ringernn)[index];
       const Float_t &el_eta = (*d3pd->el_eta)[index];
@@ -636,31 +597,31 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         if(doDetailedTruth){
           if((TMath::Abs(el_truth_type) == signalPdgId) && 
               (el_truth_mothertype == signalMotherPdgId)){ // Then it s signal
-            fillDetailedTruthCounterFor(TruthSignal,full_ds,el_isEM,el_nnOutput);
+            fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput);
           }else{ // It is not signal:
             switch(TMath::Abs(el_truth_type)){
-              case Electron_type:
-                fillDetailedTruthCounterFor(Electron,full_ds,el_isEM,el_nnOutput);
+              case truth::Electron_type:
+                fillDetailedTruthCounterFor(truth::Electron,full_ds,el_isEM,el_nnOutput);
               break;
-              case Foton_type:
-                if(el_truth_mothertype!=Pion0_type)
-                  fillDetailedTruthCounterFor(Pion,full_ds,el_isEM,el_nnOutput);
+              case truth::Photon_type:
+                if(el_truth_mothertype!=truth::Pion0_type)
+                  fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput);
                 else
-                  fillDetailedTruthCounterFor(Photon,full_ds,el_isEM,el_nnOutput);
+                  fillDetailedTruthCounterFor(truth::Photon,full_ds,el_isEM,el_nnOutput);
               break;
-              case Pion_type:
-                fillDetailedTruthCounterFor(Pion,full_ds,el_isEM,el_nnOutput);
+              case truth::Pion_type:
+                fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput);
               break;
-              case Kaon_type:
-              case Kaon0s_type:
-              case Kaon0l_type:
-                fillDetailedTruthCounterFor(Kaon,full_ds,el_isEM,el_nnOutput);
+              case truth::Kaon_type:
+              case truth::Kaon0s_type:
+              case truth::Kaon0l_type:
+                fillDetailedTruthCounterFor(truth::Kaon,full_ds,el_isEM,el_nnOutput);
               break;
-              case Unmatched_type:
-                fillDetailedTruthCounterFor(Unmatched,full_ds,el_isEM,el_nnOutput);
+              case truth::Unmatched_type:
+                fillDetailedTruthCounterFor(truth::Unmatched,full_ds,el_isEM,el_nnOutput);
               break;
               default:
-                fillDetailedTruthCounterFor(Other,full_ds,el_isEM,el_nnOutput);
+                fillDetailedTruthCounterFor(truth::Other,full_ds,el_isEM,el_nnOutput);
             }
           }
         }
@@ -792,47 +753,7 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 //========================================================================
 //========================================================================
 //========================================================================
-inline
-bool D3PDAnalysis::isTestCluster(const unsigned isem, const eg_key::DATASET ds){
-  unsigned ruleSize = testDsRules.size();
-  if(!ruleSize)
-    // If no test rule, than use all data:
-    return true;
-  switch(ds){
-    case eg_key::Signal:
-    case eg_key::SignalFullDs:
-    {
-      // If passed trainSgnIsEM, than we must check if it was used as train or validation dataset.
-      if(!(isem & trainSgnIsEM)){
-        static size_t nclus = 0;
-        for(unsigned i = 0; i < ruleSize-1; ++i,++nclus){
-          if( (nclus % testDsRules[ruleSize-1]) == testDsRules[i] )
-            return false;
-        }
-      }
-      break;
-    } 
-    case eg_key::Background:
-    {
-      if(isem & trainBkgIsEM){
-        static size_t nclus = 0;
-        for(unsigned i = 0; i < ruleSize-1; ++i,++nclus){
-          if( nclus%testDsRules[ruleSize-1] == testDsRules[i] )
-            return false;
-        }
-      }
-      break;
-    } 
-    default:
-      std::cerr << "ERROR in isTestCluster():\t\tUsed dataset as " << ds  << std::endl;
-  }
-  return true;
-}
-
-//========================================================================
-//========================================================================
-//========================================================================
-void D3PDAnalysis::fillDetailedTruthCounterFor(const TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
+void D3PDAnalysis::fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
     const Float_t el_nnOutput){
   // Fill TruthSignal AllData 
   detailedTruthCounter_map->find(Key_t1(ds))->second // then get hist
@@ -1207,10 +1128,10 @@ void D3PDAnalysis::printDetailedTruthEff(){
     for(size_t i = 0; i < nDs;++i){
       std::cout << "---------- Detailed Truth for " << make_str(ds[i]) << "----------" << std::endl;
       std::cout << "\t\tOffRinger\tOffEgamma" << std::endl;
-      for(size_t j = 0; j < LastTPart;++j){
+      for(size_t j = 0; j < truth::LastTPart;++j){
         TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds[i]))->second;
         Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
-        std::cout << make_str(TRUTH_PARTICLE(j)) << "(" << perc << ")"<<std::endl;
+        std::cout << make_str(truth::TRUTH_PARTICLE(j)) << "(" << perc << ")"<<std::endl;
         for(size_t n = eg_key::Loose; n < req_size;++n){
           std::cout<<make_str(req[n]);
           for(size_t m = 0; m < alg_size;++m){
@@ -1913,7 +1834,7 @@ void D3PDAnalysis::printEffHtmlTable(const char *effName){
   // Neural network efficiency with respect to Standard Egamma:
   std::cout << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
   std::cout << "<tr><th rowspan=\"2\" colspan=\"2\" width=\"400\" size=\"4\"> " + std::string(effName) + 
-    " (\%)</h3></th><th colspan=4\" width=\"400\"><h3>Regular E/&gamma; Algorithm</h3></th>" << std::endl;
+    " (\%)</h3></th><th colspan=4\" width=\"400\"><h3>Standard E/&gamma; Algorithm</h3></th>" << std::endl;
   std::cout << "<tr>" << std::endl;
   std::cout << "<td>All Data</td>" << std::endl;
   std::cout << "<td>Loose</td>" << std::endl;
@@ -1967,8 +1888,8 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
   std::cout.setf(std::ios::fixed,std::ios::floatfield);
   std::cout << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
   std::cout << "<th rowspan=\"2\" size=\"4\"> Particles from " << ds_name  << " Dataset </br> " <<
-    " (Data Percentage) [Efficiency Rates (\%)] </br> </th><th colspan=\"3\"><h3>Offline Standard E/&gamma;" << 
-    "</h3></th><th colspan=\"3\"><h3>Offline Ringer</h3></th>" << std::endl;
+    " (Data Percentage) [Efficiency Rates (\%)] </br> </th><th colspan=\"3\"><h3>Offline Ringer" << 
+    "</h3></th><th colspan=\"3\"><h3>Offline Standard E/&gamma;</h3></th>" << std::endl;
   std::cout << "<tr>" << std::endl;
   std::cout << "<td width=\"75\">Loose</td>" << std::endl;
   std::cout << "<td width=\"75\">Medium</td>" << std::endl;
@@ -1977,14 +1898,14 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
   std::cout << "<td width=\"75\">Medium</td>" << std::endl;
   std::cout << "<td width=\"75\">Tight</td>" << std::endl;
   std::cout << "</tr>" << std::endl;
-  for(size_t j = 0; j < LastTPart;++j){
+  for(size_t j = 0; j < truth::LastTPart;++j){
     TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds))->second;
     Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
     std::cout << "<tr>" << std::endl;
     if(!j)
-      std::cout << "<td>" << make_str(TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
+      std::cout << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
     else
-      std::cout << "<td>" << make_str(TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
+      std::cout << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
     for(size_t k = 0; k < alg_size;++k){
       for(size_t m = eg_key::Loose; m < req_size;++m){
         TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds,req[m],alg[k]))->second;

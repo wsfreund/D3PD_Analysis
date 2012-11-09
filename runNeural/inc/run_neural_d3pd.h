@@ -14,6 +14,8 @@
 // Custom includes
 #include "Neural.h"
 #include "coreUtils.h"
+#include "truth.h"
+#include "egammaPIDdefs.h"
 
 // Root includes
 #include "TFile.h"
@@ -30,12 +32,33 @@ enum NORMALIZATIONS{
   standartization
 };
 
+enum TRAINED_WRT{
+  Standard_Eg,
+  Truth
+};
+
+
 struct opts{
   std::string listFileName;
   std::string outputFile; 
   std::string fileNN;
   std::vector<NORMALIZATIONS> normVec; 
-  double mean_trn_ds, std_trn_ds;
+  double mean_trn_ds, std_trn_ds; // TODO Change this to vector<double>
+  // do propagation only for test clusters:
+  bool doTestOnly;
+  // info available on nn file?
+  bool doUseTrnInfoOnNNFile;
+  // Test Dataset Rules (if cluster_size = 0, use all data)
+  unsigned sgnCluster_size;
+  unsigned bkgCluster_size;
+  std::vector<unsigned> testSgnClusters;
+  std::vector<unsigned> testBkgClusters;
+  // Logic used to train neural network
+  unsigned ringerNNTrnWrt;
+  int sgnTrnPdgIdType;
+  int sgnTrnMotherPdgIdType;
+  unsigned sgnTrnIsEM_mask;
+  unsigned bkgTrnIsEM_mask;
 };
 
 int main(int argc, char *argv[]);
@@ -44,7 +67,7 @@ void readInputs(int argc, char *argv[], opts &setOpts);
 
 void help();
 
-Neural* readNN(const opts &setOpts);
+Neural* readNN(opts &setOpts);
 
 void runNN(const Neural *the_nn,const opts &setOpts);
 

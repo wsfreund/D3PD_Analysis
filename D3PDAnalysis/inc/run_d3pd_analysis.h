@@ -8,6 +8,7 @@
 
 // Custom includes
 #include "coreUtils.h"
+#include "truth.h"
 #include "Key_t1.h"
 #include "D3PDAnalysis.h"
 

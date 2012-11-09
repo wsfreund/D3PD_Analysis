@@ -18,7 +18,6 @@
 #include "TKey.h"
 
 class Key_t1;
-class egammaD3PD;
 
 #define SIZE(a) sizeof(a)/sizeof(a[0])
 #define SHOW(a) std::cout << #a << ": " << (a) << std::endl;
