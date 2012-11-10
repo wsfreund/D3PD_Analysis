@@ -763,7 +763,7 @@ void runNN(const Neural *the_nn,const opts &setOpts){
       isTestCluster = testSgnStandardEg;
       input1 = el_isEM;
     }
-  }else if(setOpts.dataset == "backgroung"){
+  }else if(setOpts.dataset == "background"){
     if(setOpts.ringerNNTrnWrt == Truth){
       isTestCluster = testSgnStandardEg;
     }else if(setOpts.ringerNNTrnWrt == Standard_Eg){
@@ -796,7 +796,6 @@ void runNN(const Neural *the_nn,const opts &setOpts){
       nn_output->push_back(the_nn->propagate(rings)); // and propagate
     }
     if(setOpts.doTestOnly){ // Remove non test particles
-      size_t non_test_idx_size = non_test_idx.size();
       el_n -= non_test_idx.size();
       if(doTruth){
         // Empty truth branches containing non test particles:
