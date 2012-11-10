@@ -870,8 +870,8 @@ bool testBkgTruth(const opts &setOpts, const Int_t index, const void *, const vo
   static long unsigned trn_idx = 0;
   static unsigned cluster_idx = 0;
   // Used in traninig, but need to check if used as test cluster:
-  const unsigned &cluster_size = setOpts.sgnCluster_size;
-  const std::vector<unsigned> &clusterVec = setOpts.testSgnClusters;
+  const unsigned &cluster_size = setOpts.bkgCluster_size;
+  const std::vector<unsigned> &clusterVec = setOpts.testBkgClusters;
 
   if( trn_idx >= (clusterVec[cluster_idx]-1)*cluster_size){
     if (trn_idx < (clusterVec[cluster_idx])*cluster_size){
@@ -925,8 +925,8 @@ bool testBkgStandardEg(const opts &setOpts, const Int_t index, const void *isem,
     return true; // Not used in training
 
   // Used in traninig, but need to check if used as test cluster:
-  const unsigned &cluster_size = setOpts.sgnCluster_size;
-  const std::vector<unsigned> &clusterVec = setOpts.testSgnClusters;
+  const unsigned &cluster_size = setOpts.bkgCluster_size;
+  const std::vector<unsigned> &clusterVec = setOpts.testBkgClusters;
 
   if( trn_idx >= (clusterVec[cluster_idx]-1)*cluster_size){
     if (trn_idx < (clusterVec[cluster_idx])*cluster_size){

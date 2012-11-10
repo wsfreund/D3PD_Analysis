@@ -84,6 +84,17 @@ template<class C> void clearVec(std::vector<C> &cntr){
   cntr.clear();
 }
 
+template<class T> inline 
+void emptyVec(std::vector<T> *vec, std::vector<unsigned> &pos){
+/*
+*   Empties vector vec on positions contained by pos
+*/
+  size_t pos_size = pos.size();
+  for(unsigned m = pos_size; m > 0;--m){
+    vec->erase(vec->begin()+pos[m-1]);
+  }
+}
+
 const std::string currentDateTime();
 /*
 * Returns current date/time, format is YYYY-MM-DD.HH:mm:ss
