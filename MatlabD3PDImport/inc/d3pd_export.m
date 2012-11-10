@@ -19,6 +19,6 @@ for k=1:length(analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters)-1
   fprintf(pyFile,'%d,',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(k));
 end
 fprintf(pyFile,'%d]\n',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(end));
-fprintf(pyFile, 'self.ringerNNTrnWrt=%d\n',1); % TODO Change it to read an variable of analysis
-fprintf(pyFile, 'self.sgnTrnPdgIdType=%d\n',11); % TODO Change it to read an variable of analysis
-fprintf(pyFile, 'self.sgnTrnMotherPdgIdType=%d\n',22); % TODO Change it to read an variable of analysis
+fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',1); % TODO Change it to read an variable of analysis
+fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',11); % TODO Change it to read an variable of analysis
+fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',23); % TODO Change it to read an variable of analysis
