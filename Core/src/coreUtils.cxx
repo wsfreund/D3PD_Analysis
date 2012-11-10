@@ -120,7 +120,6 @@ void enableUsedBranches(TTree *d3pd){
     d3pd->SetBranchStatus("el_truth_type",1);  // activate branchname        
     d3pd->SetBranchStatus("el_truth_mothertype",1);  // activate branchname        
     d3pd->SetBranchStatus("el_truth_status",1);  // activate branchname        
-    d3pd->SetBranchStatus("el_truth_type",1);  // activate branchname        
     d3pd->SetBranchStatus("el_truth_barcode",1);  // activate branchname        
     d3pd->SetBranchStatus("el_truth_motherbarcode",1);  // activate branchname        
     d3pd->SetBranchStatus("el_truth_matched",1);  // activate branchname        

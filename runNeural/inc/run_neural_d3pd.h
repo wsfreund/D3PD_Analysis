@@ -46,6 +46,7 @@ struct opts{
   double mean_trn_ds, std_trn_ds; // TODO Change this to vector<double>
   // do propagation only for test clusters:
   bool doTestOnly;
+  std::string dataset;
   // info available on nn file?
   bool doUseTrnInfoOnNNFile;
   // Test Dataset Rules (if cluster_size = 0, use all data)
@@ -72,5 +73,11 @@ Neural* readNN(opts &setOpts);
 void runNN(const Neural *the_nn,const opts &setOpts);
 
 void normalize(std::vector<float> &rings, const opts &setOpts);
+
+bool useAll(const opts &setOpts, const Int_t index, const void *, const void *);
+bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const void *motherpdg);
+bool testBkgTruth(const opts &setOpts, const Int_t index, const void *, const void *);
+bool testSgnStandardEg(const opts &setOpts, const Int_t index, const void *isem, const void *);
+bool testBkgStandardEg(const opts &setOpts, const Int_t index, const void *isem, const void *);
 
 #endif
