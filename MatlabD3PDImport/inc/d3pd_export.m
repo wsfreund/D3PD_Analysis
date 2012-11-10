@@ -7,8 +7,8 @@ nNetTrnInfo = genvarname(sprintf('%d_net_trnInfo',analysis.(hNNname).bestNet));
 net2py(analysis.(hNNname).(nNet),fileName)
 pyFile=fopen(fileName,'a');
 
-fprintf(pyFile,'self.sgn_cl_size=%d\n',analysis.sgn_cl_size);
-fprintf(pyFile,'self.bkg_cl_size=%d\n',analysis.bkg_cl_size);
+fprintf(pyFile,'self.sgnCluster_size=%d\n',analysis.sgn_cl_size);
+fprintf(pyFile,'self.bkgCluster_size=%d\n',analysis.bkg_cl_size);
 fprintf(pyFile,'self.sgn_tst_clusters=[');
 for k=1:length(analysis.(hNNname).(nNetTrnInfo).sgn_tst_clusters)-1
   fprintf(pyFile,'%d,',analysis.(hNNname).(nNetTrnInfo).sgn_tst_clusters(k));

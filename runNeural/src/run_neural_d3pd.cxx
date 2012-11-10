@@ -26,7 +26,6 @@ int main(int argc, char *argv[]){
   try{
     readInputs(argc,argv,running_opts);
     Neural *theNN = readNN(running_opts);
-    std::cout << "ok3" << std::endl;
 #ifdef DEBUG
     std::cout << "Selected Root files are: " << running_opts.listFileName << std::endl;
     std::cout << "fileNN: " << running_opts.fileNN << std::endl;
@@ -695,30 +694,66 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   // Enable only reading branches:
   enableUsedBranches(inputChain);
 
+  bool doTruth = inputChain->FindBranch("el_truth_type");
+
   // Read branches:
   Int_t el_n;
   std::vector<std::vector<float> > *ringsVector = new std::vector<std::vector <float> >;
   std::vector<double> *nn_output = new std::vector<double>;
-  std::vector<int> *el_truth_type = new std::vector<int>;
-  std::vector<int> *el_truth_mothertype = new std::vector<int>;
+  std::vector<int> *el_truth_type = (doTruth)?new std::vector<int>:0;
+  std::vector<int> *el_truth_mothertype = (doTruth)?new std::vector<int>:0;
+  std::vector<int> *el_truth_status = (doTruth)?new std::vector<int>:0;
+  std::vector<int> *el_truth_barcode = (doTruth)?new std::vector<int>:0;
+  std::vector<int> *el_truth_motherbarcode = (doTruth)?new std::vector<int>:0;
+  std::vector<int> *el_truth_matched = (doTruth)?new std::vector<int>:0;
   std::vector<unsigned> *el_isEM = new std::vector<unsigned>;
-  inputChain->SetBranchAddress("el_n",&el_n);
-  inputChain->SetBranchAddress("el_rings_E",&ringsVector);
-  inputChain->SetBranchAddress("el_ringernn",&nn_output);
-  inputChain->SetBranchAddress("el_truth_type",&el_truth_type);
-  inputChain->SetBranchAddress("el_truth_mothertype",&el_truth_mothertype);
-  inputChain->SetBranchAddress("el_isEM",&el_isEM);
+  std::vector<float> *el_eta = new std::vector<float>;
+  std::vector<float> *el_phi = new std::vector<float>;
+  std::vector<float> *el_E = new std::vector<float>;
+  std::vector<float> *el_reta = new std::vector<float>;
+  std::vector<float> *el_emaxs1 = new std::vector<float>;
+  std::vector<float> *el_Emax2 = new std::vector<float>;
+  std::vector<float> *el_Ethad1 = new std::vector<float>;
+  std::vector<float> *el_ws3 = new std::vector<float>;
+  std::vector<float> *el_weta2 = new std::vector<float>;
 
+  std::vector<std::vector<float>* >vecList; // This vector will be used to clear inputs  
+  std::vector<std::vector<int>* >vecList_truth; // This vector will be used to clear inputs  
+
+  // Set Addresses:
+  if(doTruth){
+    inputChain->SetBranchAddress("el_truth_type",&el_truth_type); vecList_truth.push_back(el_truth_type);
+    inputChain->SetBranchAddress("el_truth_mothertype",&el_truth_mothertype);vecList_truth.push_back(el_truth_mothertype);
+    inputChain->SetBranchAddress("el_truth_status",&el_truth_status);vecList_truth.push_back(el_truth_status);
+    inputChain->SetBranchAddress("el_truth_barcode",&el_truth_barcode);vecList_truth.push_back(el_truth_barcode);
+    inputChain->SetBranchAddress("el_truth_motherbarcode",&el_truth_motherbarcode);vecList_truth.push_back(el_truth_motherbarcode);
+    inputChain->SetBranchAddress("el_truth_matched",&el_truth_matched);vecList_truth.push_back(el_truth_matched);
+  }
+  inputChain->SetBranchAddress("el_n",&el_n); // Special routine
+  inputChain->SetBranchAddress("el_rings_E",&ringsVector);// Special routine
+  inputChain->SetBranchAddress("el_ringernn",&nn_output);// Special routine
+  inputChain->SetBranchAddress("el_isEM",&el_isEM); // Special routine
+  inputChain->SetBranchAddress("el_eta",&el_eta);vecList.push_back(el_eta);
+  inputChain->SetBranchAddress("el_phi",&el_phi);vecList.push_back(el_phi);
+  inputChain->SetBranchAddress("el_E",&el_E);vecList.push_back(el_E);
+  inputChain->SetBranchAddress("el_reta",&el_reta);vecList.push_back(el_reta);
+  inputChain->SetBranchAddress("el_emaxs1",&el_emaxs1);vecList.push_back(el_emaxs1);
+  inputChain->SetBranchAddress("el_Emax2",&el_Emax2);vecList.push_back(el_Emax2);
+  inputChain->SetBranchAddress("el_Ethad1",&el_Ethad1);vecList.push_back(el_Ethad1);
+  inputChain->SetBranchAddress("el_ws3",&el_ws3);vecList.push_back(el_ws3);
+  inputChain->SetBranchAddress("el_weta2",&el_weta2);vecList.push_back(el_weta2);
+  
+  size_t vecList_truth_size = vecList_truth.size();
+  size_t vecList_size = vecList.size();
+
+  // Will hold inputs to isTestCluster:
   void *input1 = 0;
   void *input2 = 0;
 
-  TTree *outputTree = inputChain->CloneTree(0);
-
-  // Loop over entries:
-  Long64_t nentries = inputChain->GetEntries();
-
+  // Fnc pointer to define if particle is to be tested:
   bool (*isTestCluster)(const opts &, const Int_t, const void *, const void *) = 0;
 
+  // Define routines 
   if(setOpts.dataset == "signal"){
     if(setOpts.ringerNNTrnWrt == Truth){
       isTestCluster = testSgnTruth;
@@ -737,22 +772,46 @@ void runNN(const Neural *the_nn,const opts &setOpts){
     }
   }
 
+  TTree *outputTree = inputChain->CloneTree(0); // Copy tree into output
+
+  Long64_t nentries = inputChain->GetEntries(); // Loop over entries
+
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     inputChain->GetEntry(jentry);
     nn_output->clear();
+    std::vector<unsigned> non_test_idx; // Hold training and validation indexes
     for (Int_t index_el=0; index_el < el_n; ++index_el ){
       try{
-        if(setOpts.doTestOnly && !isTestCluster(setOpts,index_el,input1,input2))
+        if(setOpts.doTestOnly && !isTestCluster(setOpts,index_el,input1,input2)){
+          non_test_idx.push_back(index_el); // Push index
           continue;
+        }
       }catch(int i){
+        // There are no more training and validation inputs, simplify testing method into useAll:
         isTestCluster = useAll;
       }
-      // Get rings from ringsVector:
-      std::vector<float> &rings = (*ringsVector)[index_el]; //
-      // Normalize rings:
-      normalize(rings,setOpts);
-      // Propagate:
-      nn_output->push_back(the_nn->propagate(rings));
+      // If we arived here, this is a testing particle:
+      std::vector<float> rings = (*ringsVector)[index_el]; // We get copy a from ringsVector
+      normalize(rings,setOpts); // normalize them
+      nn_output->push_back(the_nn->propagate(rings)); // and propagate
+    }
+    if(setOpts.doTestOnly){ // Remove non test particles
+      size_t non_test_idx_size = non_test_idx.size();
+      el_n -= non_test_idx.size();
+      if(doTruth){
+        // Empty truth branches containing non test particles:
+        for(unsigned k = 0; k < vecList_truth_size;++k){
+          emptyVec(vecList_truth.at(k),non_test_idx);
+        }
+      }
+      // Empty variables branches containing non test particles:
+      for(unsigned k = 0; k < vecList_size;++k){
+        emptyVec(vecList.at(k),non_test_idx);
+      }
+      // Empty isEM non test particles:
+      emptyVec(el_isEM, non_test_idx);
+      // Empty ringsVector non test particles:
+      emptyVec(ringsVector, non_test_idx);
     }
     // Write:
     outputTree->Fill();
@@ -761,6 +820,10 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   TFile *outputFile = new TFile(setOpts.outputFile.c_str(),"recreate");
   outputTree->Write();
   outputFile->Write();
+  if(doTruth) delete el_truth_type; if(doTruth) delete el_truth_mothertype; if(doTruth) delete el_truth_status;
+  if(doTruth) delete el_truth_barcode; if(doTruth) delete el_truth_motherbarcode; if(doTruth) delete el_truth_matched;
+  delete el_isEM; delete el_eta; delete el_phi; delete el_E; delete el_reta; delete el_emaxs1;
+  delete el_Emax2; delete el_Ethad1; delete el_ws3; delete el_weta2;
   delete outputFile;
   delete inputChain;
   delete ringsVector;
@@ -773,7 +836,7 @@ bool useAll(const opts &setOpts, const Int_t index, const void *, const void *){
   return true;
 }
 
-
+inline
 bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const void *motherpdg){
   static long unsigned trn_idx = 0;
   static unsigned cluster_idx = 0;
@@ -796,13 +859,14 @@ bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const
         if(cluster_idx==clusterVec.size())
           throw 0;
       }
-      return true;
+      return true; // Used as test
     }
   }
   ++trn_idx;
-  return false;
+  return false; // Used as train or validation
 }
 
+inline
 bool testBkgTruth(const opts &setOpts, const Int_t index, const void *, const void *){
   static long unsigned trn_idx = 0;
   static unsigned cluster_idx = 0;
@@ -818,13 +882,14 @@ bool testBkgTruth(const opts &setOpts, const Int_t index, const void *, const vo
         if(cluster_idx==clusterVec.size())
           throw 0;
       }
-      return true;
+      return true; // Used as test
     }
   }
   ++trn_idx;
-  return false;
+  return false; // Used as train or validation
 }
 
+inline
 bool testSgnStandardEg(const opts &setOpts, const Int_t index, const void *isem, const void *){
   static long unsigned trn_idx = 0;
   static unsigned cluster_idx = 0;
@@ -845,13 +910,14 @@ bool testSgnStandardEg(const opts &setOpts, const Int_t index, const void *isem,
         if(cluster_idx==clusterVec.size())
           throw 0;
       }
-      return true;
+      return true; // Used as test
     }
   }
   ++trn_idx;
-  return false;
+  return false; // Used as train or validation
 }
 
+inline
 bool testBkgStandardEg(const opts &setOpts, const Int_t index, const void *isem, const void *){
   static long unsigned trn_idx = 0;
   static unsigned cluster_idx = 0;
@@ -871,11 +937,11 @@ bool testBkgStandardEg(const opts &setOpts, const Int_t index, const void *isem,
         if(cluster_idx==clusterVec.size())
           throw 0;
       }
-      return true;
+      return true; // Used as test
     }
   }
   ++trn_idx;
-  return false;
+  return false; // Used as train or validation
 }
 
 void normalize(std::vector<float> &rings, const opts &setOpts){

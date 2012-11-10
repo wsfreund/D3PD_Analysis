@@ -80,4 +80,13 @@ bool testBkgTruth(const opts &setOpts, const Int_t index, const void *, const vo
 bool testSgnStandardEg(const opts &setOpts, const Int_t index, const void *isem, const void *);
 bool testBkgStandardEg(const opts &setOpts, const Int_t index, const void *isem, const void *);
 
+
+template<class T> inline 
+void emptyVec(std::vector<T> *vec, std::vector<unsigned> &pos){
+  size_t pos_size = pos.size();
+  for(unsigned m = pos_size; m > 0;--m){
+    vec->erase(vec->begin()+pos[m-1]);
+  }
+}
+
 #endif
