@@ -765,7 +765,7 @@ void runNN(const Neural *the_nn,const opts &setOpts){
     }
   }else if(setOpts.dataset == "background"){
     if(setOpts.ringerNNTrnWrt == Truth){
-      isTestCluster = testSgnStandardEg;
+      isTestCluster = testBkgTruth;
     }else if(setOpts.ringerNNTrnWrt == Standard_Eg){
       isTestCluster = testBkgStandardEg;
       input1 = el_isEM;
