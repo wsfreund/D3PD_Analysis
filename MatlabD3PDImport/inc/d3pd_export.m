@@ -4,6 +4,7 @@ hNNname = genvarname(sprintf('%d_hiddenNeurons',analysis.bestNeurons));
 nNet = genvarname(sprintf('%d_net',analysis.(hNNname).bestNet));
 nNetTrnInfo = genvarname(sprintf('%d_net_trnInfo',analysis.(hNNname).bestNet));
 
+net2py(analysis.(hNNname).(nNet),fileName)
 pyFile=fopen(fileName,'a');
 
 fprintf(pyFile,'self.sgn_cl_size=%d\n',analysis.sgn_cl_size);
