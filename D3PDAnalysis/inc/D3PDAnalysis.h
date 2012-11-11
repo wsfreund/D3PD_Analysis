@@ -320,6 +320,11 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   gStyle->SetOptStat(111111);                                             
   gStyle->SetErrorX(0.); // Remove x error bars
 
+  // Change ana_place to absolute path:
+  char abs_file_path[PATH_MAX+1];
+  realpath(this->ana_place.c_str(),abs_file_path);
+  this->ana_place = abs_file_path;
+
   // Set workplace:
   if(this->ana_place == ""){
     this->ana_place = gSystem->pwd(); // If no place defined for analysis, set pwd

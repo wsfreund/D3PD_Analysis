@@ -781,14 +781,9 @@ void runNN(const Neural *the_nn,const opts &setOpts){
     nn_output->clear();
     std::vector<unsigned> non_test_idx; // Hold training and validation indexes
     for (Int_t index_el=0; index_el < el_n; ++index_el ){
-      try{
-        if(setOpts.doTestOnly && !isTestCluster(setOpts,index_el,input1,input2)){
-          non_test_idx.push_back(index_el); // Push index
-          continue;
-        }
-      }catch(int i){
-        // There are no more training and validation inputs, simplify testing method into useAll:
-        isTestCluster = useAll;
+      if(setOpts.doTestOnly && !isTestCluster(setOpts,index_el,input1,input2)){
+        non_test_idx.push_back(index_el); // Push index
+        continue;
       }
       // If we arived here, this is a testing particle:
       std::vector<float> rings = (*ringsVector)[index_el]; // We get copy a from ringsVector
@@ -842,9 +837,9 @@ bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const
   const int &thePdg = TMath::Abs(static_cast<const std::vector<int>*>(pdg)->at(index));
   const int &theMotherPdg = static_cast<const std::vector<int>*>(motherpdg)->at(index);
   if(thePdg!=setOpts.sgnTrnPdgIdType)
-    return true; // Not used in training
+    return true; // Use as test (not used in training
   if(theMotherPdg!=setOpts.sgnTrnMotherPdgIdType)
-    return true; // Not used in training
+    return true; // Use as test (not used in training
 
   // Used in traninig, but need to check if used as test cluster:
   const unsigned &cluster_size = setOpts.sgnCluster_size;
@@ -878,8 +873,6 @@ bool testBkgTruth(const opts &setOpts, const Int_t index, const void *, const vo
       ++trn_idx;
       if(trn_idx == (clusterVec[cluster_idx])*cluster_size){
         ++cluster_idx;
-        if(cluster_idx==clusterVec.size())
-          throw 0;
       }
       return true; // Used as test
     }
@@ -906,8 +899,6 @@ bool testSgnStandardEg(const opts &setOpts, const Int_t index, const void *isem,
       ++trn_idx;
       if(trn_idx == (clusterVec[cluster_idx])*cluster_size){
         ++cluster_idx;
-        if(cluster_idx==clusterVec.size())
-          throw 0;
       }
       return true; // Used as test
     }
@@ -933,8 +924,6 @@ bool testBkgStandardEg(const opts &setOpts, const Int_t index, const void *isem,
       ++trn_idx;
       if(trn_idx == (clusterVec[cluster_idx])*cluster_size){
         ++cluster_idx;
-        if(cluster_idx==clusterVec.size())
-          throw 0;
       }
       return true; // Used as test
     }
