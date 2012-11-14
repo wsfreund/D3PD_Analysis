@@ -12,6 +12,9 @@ int main(int argc, char *argv[]){
   running_opts.debug = false;
   running_opts.doForceRingerThres = false;
   running_opts.doDetailedTruth = false;
+  running_opts.doHtmlOutput = true;
+  running_opts.doTexOutput = true;
+  running_opts.doROC = true;
   running_opts.anaName = "CaloRinger_Analysis_ElectronVsJet";
   running_opts.anaDir = "";
   running_opts.high_resolution_bin = 10000;
@@ -74,16 +77,54 @@ void readInputs(int argc, char *argv[], opts &setOpts){
         }
       } else if (std::string(argv[ip]) == "--doTruth") {
         ++ip;
-        setOpts.doTruth = true;
+        SHOW(ip) SHOW(argc)
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doTruth = atoi(argv[ip++]);
+        } else {
+          setOpts.doTruth = true;
+        }
       } else if (std::string(argv[ip]) == "--debug") {
         ++ip;
-        setOpts.debug = true;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.debug = atoi(argv[ip++]);
+        } else {
+          setOpts.debug = true;
+        }
       } else if (std::string(argv[ip]) == "--doForceRingerThres") {
         ++ip;
-        setOpts.doForceRingerThres = true;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doForceRingerThres = atoi(argv[ip++]);
+        } else {
+          setOpts.doForceRingerThres = true;
+        }
       } else if (std::string(argv[ip]) == "--doDetailedTruth") {
         ++ip;
-        setOpts.doDetailedTruth = true;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doDetailedTruth = atoi(argv[ip++]);
+        } else {
+          setOpts.doDetailedTruth = true;
+        }
+      } else if (std::string(argv[ip]) == "--doHtmlOutput") {
+        ++ip;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doHtmlOutput = atoi(argv[ip++]);
+        } else {
+          setOpts.doHtmlOutput = true;
+        }
+      } else if (std::string(argv[ip]) == "--doTexOutput") {
+        ++ip;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doTexOutput = atoi(argv[ip++]);
+        } else {
+          setOpts.doTexOutput = true;
+        }
+      } else if (std::string(argv[ip]) == "--doROC") {
+        ++ip;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doROC = atoi(argv[ip++]);
+        } else {
+          setOpts.doROC = true;
+        }
       } else if (std::string(argv[ip]) == "--anaName") {
         ++ip;
         if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
@@ -205,6 +246,9 @@ void readInputs(int argc, char *argv[], opts &setOpts){
   std::cout << "-- debug = " << setOpts.debug << std::endl;
   std::cout << "-- doForceRingerThres = " << setOpts.doForceRingerThres << std::endl;
   std::cout << "-- doDetailedTruth = = " << setOpts.doDetailedTruth << std::endl;
+  std::cout << "-- doHtmlOutput = = " << setOpts.doHtmlOutput << std::endl;
+  std::cout << "-- doTexOutput = = " << setOpts.doTexOutput << std::endl;
+  std::cout << "-- doROC = " << setOpts.doROC << std::endl;
   std::cout << "-- anaName = " << setOpts.anaName << std::endl;
   std::cout << "-- anaDir = " << setOpts.anaDir << std::endl;
   std::cout << "-- high_resolution_bin = " << setOpts.high_resolution_bin << std::endl;
@@ -224,21 +268,27 @@ void help(){
 
   std::cout << "Usage: ./run_d3pd_analysis --signalInput <listFileName> --backgroundInput <listFileName> --options ... \n"
             << "  --options may be one from (> marks default option)/[available options]:\n\n"
-            << "    --anaName [string] > CaloRinger_Analysis_ElectronVsJet"
+            << "    --anaName [string] > CaloRinger_Analysis_ElectronVsJet\n"
             << "      Name on which analysis will be saved. \n\n"
-            << "    --anaDir [string] > <CurrentFolder>"
+            << "    --anaDir [string] > <CurrentFolder> \n"
             << "      Folder name that analysis will be saved. \n\n"
-            << "    --doTruth \n"
+            << "    --doTruth [bool] >0 \n"
             << "      Use truth information on analysis. \n\n"
-            << "    --debug \n"
+            << "    --debug [bool] >0 \n"
             << "      Run on debug mode.\n\n"
-            << "    --doForceRingerThres\n"
+            << "    --doForceRingerThres [bool] >0 \n"
             << "      Force Neural Ringer Network Thresholds to match following criterias:\n"
             << "        - Loose: Match same Signal Detection Rate as Standard Egamma Loose.\n"
             << "        - Medium: Best SP-product.\n"
             << "        - Tight: Match same Background Detection Rate as Standard Egamma Tight.\n\n"
-            << "    --doDetailedTruth\n"
+            << "    --doDetailedTruth [bool] >0 \n"
             << "      Run truth detailed information. \n\n"
+            << "    --doHtmlOutput [bool] >1 \n"
+            << "      Create html tables containing efficiencies. \n\n"
+            << "    --doTexOutput [bool] >1 \n"
+            << "      Create tex tables containing efficiencies. \n\n"
+            << "    --doROC [bool] >1 \n"
+            << "      Print ROC. \n\n"
             << "    --high_resolution_bin [Unsigned>1000] >10000 \n"
             << "      Number of bins on high resolutions histograms. \n\n"
             << "    --signalPdgId [Unsigned] >11 (electrons & positrons)\n"
@@ -278,7 +328,8 @@ void run_d3pd(const opts &setOpts){
 #endif
 
   D3PDAnalysis t1(sgn,bkg,setOpts.anaName.c_str(),setOpts.anaDir.c_str(),
-      setOpts.doTruth,setOpts.debug,setOpts.doForceRingerThres,setOpts.doDetailedTruth);
+      setOpts.doTruth,setOpts.debug,setOpts.doForceRingerThres,setOpts.doDetailedTruth,
+      setOpts.doHtmlOutput,setOpts.doTexOutput,setOpts.doROC);
 
   t1.set_hgres(setOpts.high_resolution_bin);
   // Truth pdg id matches for signal:
@@ -296,7 +347,6 @@ void run_d3pd(const opts &setOpts){
   t1.init();
   t1.loop();
   t1.draw();
-  t1.print_html_tables();
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished run_d3pd()" << std::endl;

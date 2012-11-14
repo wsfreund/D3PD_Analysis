@@ -32,14 +32,16 @@
 #define ROOT_FILE 0
 #define OUT_MAT_STR 0
 
-bool doTruth = false;
+bool truthAvailable = false;
+bool testInfoAvailable = false;
 
 using namespace std;
 
 bool existTruth(TChain *rootChain);
-UInt_t getEleEntries(TChain *rootChain);
+bool existTestInfo(TChain *rootChain);
+void getNumberOfClusters(TChain *rootChain, UInt_t &n_particles, UInt_t &n_test_particles);
 UInt_t getRingSize(TChain *rootChain);
-mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSize);
+mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_particles, const UInt_t n_test_particles);
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] );
 
 #endif

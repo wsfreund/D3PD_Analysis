@@ -26,6 +26,9 @@ struct opts{
   bool debug;
   bool doForceRingerThres;
   bool doDetailedTruth;
+  bool doHtmlOutput;
+  bool doTexOutput;
+  bool doROC;
   std::string anaName;
   std::string anaDir;
   unsigned high_resolution_bin;

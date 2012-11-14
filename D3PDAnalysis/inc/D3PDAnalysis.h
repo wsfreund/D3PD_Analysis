@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
 
 // Custom includes
 #include "coreUtils.h"
@@ -37,14 +39,13 @@ class D3PDAnalysis
 public:
   D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_name = "CaloRinger_Offline",
     const char *ana_place = "", bool doTruth = false, bool debug = false, 
-    bool doForceRingerThres = true, bool doDetailedTruth = false);
+    bool doForceRingerThres = true, bool doDetailedTruth = false, bool doHtmlOutput = true,
+    bool doTexOutput = true, bool doROC = true);
 
   // Main methods:
   void init();
   void loop();
   void draw();
-  void drawROC(); 
-  void print_html_tables();
 
   // Print map keys:
   void printMaps() const;
@@ -151,12 +152,14 @@ private:
   void drawNeuralOutputPlots();
   void drawEfficiencyPlots();
   void drawCorrelationPlots();
+  void drawROC(); 
 
   // Drawing auxiliary methods:
   void draw_corr(TH2F* myCorr, const float yDec, const char *stringName);
   void deslocate(TGraph* graph, Double_t xDes);
 
   // Auxiliary html methods:
+  void print_html_tables();
   void printEffHtmlTable(const char *effName);
   void printDetailedTruthHtmlTable(const egammaD3PD *d3pd);
 
@@ -175,6 +178,11 @@ private:
   bool debug; // Debug mode?
   bool doForceRingerThres;
   bool doDetailedTruth; // do Detailed Truth Analysis (check efficiency for pions, kaons, electrons and so on)
+  bool doHtmlOutput; // do Print Html Tables
+  bool doTexOutput; // do Print Tex Ouput
+  bool doROC; // do Detailed Truth Analysis (check efficiency for pions, kaons, electrons and so on)
+
+  bool useTest;
   
   // High resolution binnage histogram for roc:
   unsigned hgres;
@@ -226,6 +234,8 @@ private:
   Float_t pid_lb[pid_size];
   Float_t pid_ub[pid_size];
   Float_t pid_thres[pid_size]; 
+  static const Float_t crack_lb = 1.4;
+  static const Float_t crack_ub = 1.6;
 
   std::vector<unsigned> stdeg_req;  // Keep same logic as for req
   std::vector<float>  ring_req;  // Keep same logic as for req
@@ -284,11 +294,13 @@ const eg_key::PID D3PDAnalysis::pid[D3PDAnalysis::pid_size] =
 
 inline
 D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_name,
-  const char *ana_place, bool doTruth, bool debug, bool doForceRingerThres, bool doDetailedTruth)
+  const char *ana_place, bool doTruth, bool debug, bool doForceRingerThres, bool doDetailedTruth,
+  bool doHtmlOutput, bool doTexOutput, bool doROC)
 :
   sgn(0), bkg(0), ana_name(ana_name), ana_place(ana_place), 
   doTruth(doTruth), debug(debug), doForceRingerThres(doForceRingerThres),
-  doDetailedTruth(doDetailedTruth),
+  doDetailedTruth(doDetailedTruth), doHtmlOutput(doHtmlOutput),
+  doTexOutput(doTexOutput), doROC(doROC),
   // Members not configurable by user using constructor:
   hgres(100000),
   et_energy_map(0),nn_output_map(0),particles_map(0),

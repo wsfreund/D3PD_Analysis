@@ -8,34 +8,42 @@ const char *BASE_FIELD_NAMES[] = {"el_rings_E","el_ringernn","el_eta","el_phi","
 const char *TRUTH_FIELD_NAMES[] = {"el_truth_type","el_truth_mothertype","el_truth_status","el_truth_barcode",
                                     "el_truth_motherbarcode","el_truth_matched"};
 
+const char *TEST_FIELD_NAMES[] = {"el_is_testCluster"};
+
 unsigned NFIELDS = SIZE(BASE_FIELD_NAMES);
 unsigned NFIELDS_TRUTH = SIZE(TRUTH_FIELD_NAMES);
+unsigned NFIELDS_TEST = SIZE(TEST_FIELD_NAMES);
 
-
+inline
 bool existTruth(TChain *rootChain){
-
-  if(rootChain->GetBranch("el_truth_type"))
-    return true;
-  else
-    return false;
-
+  return (rootChain->GetBranch("el_truth_type"))?true:false;
 }
 
-UInt_t getEleEntries(TChain *rootChain)
+inline
+bool existTestInfo(TChain *rootChain){
+  return (rootChain->GetBranch("el_n_test"))?true:false;
+}
+
+void getNumberOfClusters(TChain *rootChain, UInt_t &n_particles, UInt_t &n_test_particles)
 {
-  Int_t ele_nc;
+  Int_t el_n, el_n_test = 0;
   rootChain->SetBranchStatus("*",0);  // disable all branches
   rootChain->SetBranchStatus("el_n",1);
-  rootChain->SetBranchAddress("el_n",&ele_nc);
+  rootChain->SetBranchAddress("el_n",&el_n);
+  if(testInfoAvailable){
+    rootChain->SetBranchStatus("el_n_test",1);
+    rootChain->SetBranchAddress("el_n_test",&el_n_test);
+  }
 
   UInt_t nEntries = rootChain->GetEntries();
-  UInt_t nel_Entries = 0;
+
+  n_particles = n_test_particles = 0;
 
   for (UInt_t ev=0; ev<nEntries; ev++){
     rootChain->GetEntry(ev);
-    nel_Entries+=ele_nc;
+    n_particles+=el_n;
+    n_test_particles+=el_n_test;
   }
-  return nel_Entries;
 }
 
 UInt_t getRingSize(TChain *rootChain)
@@ -64,57 +72,28 @@ UInt_t getRingSize(TChain *rootChain)
 
 
 
-mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSize)
+mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_particles, const UInt_t n_test_particles)
 {
-  vector<vector<Float_t> > *rootel_Rings = new vector<vector<float> >;
-  vector<Double_t> *rootel_RingerNNOut = 0;
-  vector<Float_t> *rootel_eta = 0, *rootel_phi = 0, *rootel_E = 0, *rootel_weta = 0, *rootel_weta2 = 0, *rootel_reta = 0,
-             *rootel_Emaxs1 = 0, *rootel_E2tsts1 = 0, *root = 0, *rootel_Etha1 = 0;
-  vector<Int_t> *rootel_truth_type = 0, *rootel_truth_mothertype = 0, *rootel_truth_status = 0, *rootel_truth_barcode = 0, 
-    *rootel_truth_motherbarcode= 0, *rootel_truth_matched = 0;
-
-  rootel_eta = new vector<Float_t>;
-  rootel_phi = new vector<Float_t>;
-  rootel_E = new vector<Float_t>;
-  rootel_reta = new vector<Float_t>;
-  rootel_weta = new vector<Float_t>;
-  rootel_weta2 = new vector<Float_t>;
-  rootel_Emaxs1 = new vector<Float_t>;
-  rootel_E2tsts1 = new vector<Float_t>;
-  rootel_Etha1 = new vector<Float_t>;
-  rootel_RingerNNOut = new vector<Double_t>;
+  vector<vector<Float_t> > *rootel_Rings = new vector<vector<Float_t> >;
+  vector<Double_t> *rootel_RingerNNOut = new vector<Double_t>;
+  vector<Float_t> *rootel_eta = new vector<Float_t>, *rootel_phi = new vector<Float_t>, *rootel_E = new vector<Float_t>, 
+    *rootel_weta = new vector<Float_t>, *rootel_weta2 = new vector<Float_t>, *rootel_reta = new vector<Float_t>,
+    *rootel_Emaxs1 = new vector<Float_t>, *rootel_E2tsts1 = new vector<Float_t>, *rootel_Etha1 = new vector<Float_t>;
   vector<UInt_t> *rootel_isem = new vector<UInt_t>;
-  Int_t rootel_n;
-  if (doTruth){
-    rootel_truth_type = new vector<Int_t>;
-    rootel_truth_mothertype = new vector<Int_t>;
-    rootel_truth_status = new vector<Int_t>;
-    rootel_truth_barcode = new vector<Int_t>;
-    rootel_truth_motherbarcode = new vector<Int_t>;
-    rootel_truth_matched = new vector<Int_t>;
-  }
+  vector<Int_t> *rootel_truth_type = (truthAvailable)?new vector<Int_t>:0, 
+    *rootel_truth_mothertype = (truthAvailable)?new vector<Int_t>:0, 
+    *rootel_truth_status = (truthAvailable)?new vector<Int_t>:0, 
+    *rootel_truth_barcode = (truthAvailable)?new vector<Int_t>:0, 
+    *rootel_truth_motherbarcode= (truthAvailable)?new vector<Int_t>:0, 
+    *rootel_truth_matched = (truthAvailable)?new vector<Int_t>:0;
+  vector<UInt_t> *rootel_is_testCluster = (testInfoAvailable)?new vector<UInt_t>:0;
 
-  rootChain->SetBranchStatus("*",0);  // disable all branches
-  rootChain->SetBranchStatus("el_n",1);  // activate branchname     
-  rootChain->SetBranchStatus("el_eta",1);  // activate branchname    
-  rootChain->SetBranchStatus("el_phi",1);  // activate branchname    
-  rootChain->SetBranchStatus("el_E",1);  // activate branchname   
-  rootChain->SetBranchStatus("el_reta",1);  // activate branchname   
-  rootChain->SetBranchStatus("el_emaxs1",1);  // activate branchname 
-  rootChain->SetBranchStatus("el_Emax2",1);  // activate branchname
-  rootChain->SetBranchStatus("el_Ethad1",1);  // activate branchname  
-  rootChain->SetBranchStatus("el_ws3",1);  // activate branchname  
-  rootChain->SetBranchStatus("el_weta2",1);  // activate branchname  
-  rootChain->SetBranchStatus("el_isEM",1);  // activate branchname   
-  rootChain->SetBranchStatus("el_rings_E",1); // activate branchname   
-  rootChain->SetBranchStatus("el_ringernn",1); // activate branchname   
-  if(doTruth){
-    rootChain->SetBranchStatus("el_truth_type",1); // activate branchname   
-    rootChain->SetBranchStatus("el_truth_mothertype",1); // activate branchname   
-    rootChain->SetBranchStatus("el_truth_status",1); // activate branchname   
-    rootChain->SetBranchStatus("el_truth_barcode",1); // activate branchname   
-    rootChain->SetBranchStatus("el_truth_motherbarcode",1); // activate branchname   
-    rootChain->SetBranchStatus("el_truth_matched",1); // activate branchname   
+  Int_t rootel_n, rootel_n_test;
+
+  enableUsedBranches(rootChain);
+  if(testInfoAvailable){
+    rootChain->SetBranchStatus("el_is_testCluster",1);
+    rootChain->SetBranchStatus("el_n_test",1);
   }
 
   rootChain->SetBranchAddress("el_n",&rootel_n);  
@@ -130,7 +109,7 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
   rootChain->SetBranchAddress("el_isEM",&rootel_isem);  
   rootChain->SetBranchAddress("el_rings_E",&rootel_Rings);
   rootChain->SetBranchAddress("el_ringernn",&rootel_RingerNNOut);
-  if(doTruth){
+  if(truthAvailable){
     rootChain->SetBranchAddress("el_truth_type",&rootel_truth_type);
     rootChain->SetBranchAddress("el_truth_mothertype",&rootel_truth_mothertype);
     rootChain->SetBranchAddress("el_truth_status",&rootel_truth_status);
@@ -138,34 +117,49 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
     rootChain->SetBranchAddress("el_truth_motherbarcode",&rootel_truth_motherbarcode);
     rootChain->SetBranchAddress("el_truth_matched",&rootel_truth_matched);
   }
+  if(testInfoAvailable){
+    rootChain->SetBranchAddress("el_n_test",&rootel_n_test);
+    rootChain->SetBranchAddress("el_is_testCluster",&rootel_is_testCluster);
+  }
 
   //Creating the Matlab structure that will contain the rings info..
-  mxArray *matRet = 0;
   const mwSize dim[2] = {1,1};
-  if(doTruth){
-    char *ALL_FIELD_NAMES[NFIELDS+NFIELDS_TRUTH];
-    for(unsigned k = 0; k<NFIELDS;++k){
-      ALL_FIELD_NAMES[k] = (char*)BASE_FIELD_NAMES[k];
+  unsigned n_size = NFIELDS;
+  if(truthAvailable) n_size+=NFIELDS_TRUTH;
+  if(testInfoAvailable) n_size+=NFIELDS_TEST;
+  char *all_field_names[n_size];
+  unsigned k = 0;
+  if(truthAvailable){
+    for(;k<NFIELDS_TRUTH;++k){
+      all_field_names[k] = (char*)TRUTH_FIELD_NAMES[k];
     }
-    for(unsigned k = 0; k<NFIELDS_TRUTH;++k){
-      ALL_FIELD_NAMES[k+NFIELDS] = (char*)TRUTH_FIELD_NAMES[k];
-    }
-    matRet = mxCreateStructArray(2, dim, NFIELDS+NFIELDS_TRUTH, (const char **)ALL_FIELD_NAMES);
-  }else{
-    matRet = mxCreateStructArray(2, dim, NFIELDS, BASE_FIELD_NAMES);
   }
-  mxArray *mxel_Rings = mxCreateNumericMatrix(ringSize, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_RingerNNOut = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_eta = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_phi = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_E = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_Emaxs1 = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_E2tsts1 = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_reta = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_Etha1 = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_weta = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_weta2 = mxCreateNumericMatrix(1, nel_Events, mxDOUBLE_CLASS, mxREAL);
-  mxArray *mxel_isem = mxCreateNumericMatrix(1, nel_Events, mxUINT32_CLASS, mxREAL);
+  if(testInfoAvailable){
+    for(unsigned i = 0; i<NFIELDS_TEST;++k,++i){
+      all_field_names[k] = (char*)TEST_FIELD_NAMES[i];
+    }
+  }
+  for(unsigned i = 0; i<NFIELDS;++k,++i){
+    all_field_names[k] = (char*)BASE_FIELD_NAMES[i];
+  }
+
+  mxArray *matRet = mxCreateStructArray(2, dim, n_size, (const char **)all_field_names);
+  mxArray *mxel_Rings = mxCreateNumericMatrix(ringSize, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_RingerNNOut = 0;
+  if(testInfoAvailable)
+    mxel_RingerNNOut = mxCreateNumericMatrix(1, n_test_particles, mxDOUBLE_CLASS, mxREAL);
+  else
+    mxel_RingerNNOut = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_eta = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_phi = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_E = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_Emaxs1 = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_E2tsts1 = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_reta = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_Etha1 = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_weta = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_weta2 = mxCreateNumericMatrix(1, n_particles, mxDOUBLE_CLASS, mxREAL);
+  mxArray *mxel_isem = mxCreateNumericMatrix(1, n_particles, mxUINT32_CLASS, mxREAL);
 
   mxArray *mxel_truth_type          = 0;
   mxArray *mxel_truth_mothertype    = 0;
@@ -174,13 +168,19 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
   mxArray *mxel_truth_motherbarcode = 0;
   mxArray *mxel_truth_matched       = 0;
 
-  if(doTruth){
-    mxel_truth_type          = mxCreateNumericMatrix(1, nel_Events, mxINT32_CLASS, mxREAL);
-    mxel_truth_mothertype    = mxCreateNumericMatrix(1, nel_Events, mxINT32_CLASS, mxREAL);
-    mxel_truth_status        = mxCreateNumericMatrix(1, nel_Events, mxINT32_CLASS, mxREAL);
-    mxel_truth_barcode       = mxCreateNumericMatrix(1, nel_Events, mxINT32_CLASS, mxREAL);
-    mxel_truth_motherbarcode = mxCreateNumericMatrix(1, nel_Events, mxINT32_CLASS, mxREAL);
-    mxel_truth_matched       = mxCreateNumericMatrix(1, nel_Events, mxINT32_CLASS, mxREAL);
+  if(truthAvailable){
+    mxel_truth_type          = mxCreateNumericMatrix(1, n_particles, mxINT32_CLASS, mxREAL);
+    mxel_truth_mothertype    = mxCreateNumericMatrix(1, n_particles, mxINT32_CLASS, mxREAL);
+    mxel_truth_status        = mxCreateNumericMatrix(1, n_particles, mxINT32_CLASS, mxREAL);
+    mxel_truth_barcode       = mxCreateNumericMatrix(1, n_particles, mxINT32_CLASS, mxREAL);
+    mxel_truth_motherbarcode = mxCreateNumericMatrix(1, n_particles, mxINT32_CLASS, mxREAL);
+    mxel_truth_matched       = mxCreateNumericMatrix(1, n_particles, mxINT32_CLASS, mxREAL);
+  }
+
+  mxArray *mxel_is_testCluster = 0;
+
+  if(testInfoAvailable){
+    mxel_is_testCluster = mxCreateNumericMatrix(1, n_particles, mxUINT32_CLASS, mxREAL);
   }
 
   //Taking the pointers to the structure's fields, so we can fill them up.
@@ -198,13 +198,17 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
   UInt_t *el_isem = (UInt_t *) mxGetData(mxel_isem);
   Int_t *el_truth_type, *el_truth_mothertype, *el_truth_status, *el_truth_barcode,
         *el_truth_motherbarcode, *el_truth_matched;
-  if(doTruth){
+  if(truthAvailable){
     el_truth_type = (Int_t *) mxGetData(mxel_truth_type);
     el_truth_mothertype = (Int_t *) mxGetData(mxel_truth_mothertype);
     el_truth_status = (Int_t *) mxGetData(mxel_truth_status);
     el_truth_barcode= (Int_t *) mxGetData(mxel_truth_barcode);
     el_truth_motherbarcode= (Int_t *) mxGetData(mxel_truth_motherbarcode);
     el_truth_matched = (Int_t *) mxGetData(mxel_truth_matched);
+  }
+  UInt_t *el_is_testCluster;
+  if(testInfoAvailable){
+    el_is_testCluster = (UInt_t*) mxGetData(mxel_is_testCluster);
   }
 
   double temp_RingerNNOut,temp_eta,temp_phi,temp_e,temp_reta,temp_emaxs1,temp_e2tsts1,temp_etha1,temp_weta,temp_weta2;
@@ -213,10 +217,9 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
   const Int_t nEntries = rootChain->GetEntries();
   for (Int_t ev=0; ev<nEntries; ev++)
   {
-    //printf("Reading event %d\n", ev);
     rootChain->GetEntry(ev);
 
-    for (Int_t entry_el = 0; entry_el < rootel_n; entry_el++){
+    for (UInt_t entry_el = 0; entry_el < rootel_n; entry_el++){
 
       temp_eta = rootel_eta->at(entry_el);
       *el_eta++ = temp_eta;
@@ -238,7 +241,11 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
       *el_weta2++ = temp_weta2;
       *el_isem++ = (UInt_t) rootel_isem->at(entry_el);
 
-      if(doTruth){
+      if(testInfoAvailable)
+        *el_is_testCluster++ = (UInt_t) rootel_is_testCluster->at(entry_el);
+
+
+      if(truthAvailable){
         *el_truth_type++ = rootel_truth_type->at(entry_el);
         *el_truth_mothertype++ = rootel_truth_mothertype->at(entry_el);
         *el_truth_status++ = rootel_truth_status->at(entry_el);
@@ -253,7 +260,14 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
         const double val = *itr;
         *el_Rings++ = val;
       }
-      *el_RingerNNOut++ = rootel_RingerNNOut->at(entry_el); 
+      if(!testInfoAvailable)
+        *el_RingerNNOut++ = rootel_RingerNNOut->at(entry_el); 
+    }
+
+    if(testInfoAvailable){
+      for(UInt_t entry_el_test = 0; entry_el_test < rootel_n_test; ++entry_el_test){
+        *el_RingerNNOut++ = rootel_RingerNNOut->at(entry_el_test); 
+      }
     }
   }
 
@@ -264,17 +278,19 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
   delete rootel_weta2;
   delete rootel_Emaxs1;
   delete rootel_E2tsts1;
-  delete root;
   delete rootel_Etha1;
   delete rootel_RingerNNOut;
   delete rootel_isem;
-  if(doTruth){
+  if(truthAvailable){
     delete rootel_truth_type;
     delete rootel_truth_mothertype;
     delete rootel_truth_status;
     delete rootel_truth_barcode;
     delete rootel_truth_motherbarcode;
     delete rootel_truth_matched;
+  }
+  if(testInfoAvailable){
+    delete rootel_is_testCluster;
   }
 
   mxSetField(matRet, 0, "el_eta", mxel_eta); // 1
@@ -289,15 +305,17 @@ mxArray *getRings(TChain *rootChain, const Int_t nel_Events, const UInt_t ringSi
   mxSetField(matRet, 0, "el_weta", mxel_weta);   // 12
   mxSetField(matRet, 0, "el_weta2", mxel_weta2);   // 12
   mxSetField(matRet, 0, "el_isEM", mxel_isem);     // 13
-  if(doTruth){
+  if(truthAvailable){
     mxSetField(matRet, 0, "el_truth_type", mxel_truth_type); // 14
     mxSetField(matRet, 0, "el_truth_mothertype", mxel_truth_mothertype); // 15
     mxSetField(matRet, 0, "el_truth_status", mxel_truth_status); // 16
     mxSetField(matRet, 0, "el_truth_barcode", mxel_truth_barcode); // 17
     mxSetField(matRet, 0, "el_truth_motherbarcode", mxel_truth_motherbarcode); // 18
-    mxSetField(matRet, 0, "el_truth_matched", mxel_truth_matched); // 18
+    mxSetField(matRet, 0, "el_truth_matched", mxel_truth_matched); // 19
   }
-
+  if(testInfoAvailable){
+    mxSetField(matRet, 0, "el_is_testCluster", mxel_is_testCluster); // 20
+  }
 
   return matRet;
 }
@@ -321,23 +339,27 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
   // TODO: Place this in a function on core
   TChain *rootChain = readTChainFilesFromPath(mxArrayToString(prhs[ROOT_FILE]), "egammaD3PD");
 
-  doTruth = existTruth(rootChain);
-  if (doTruth)
-    printf("Truth information is available ...\n");
-  else
-    printf("Truth information is not available ...\n");
+  truthAvailable = existTruth(rootChain);
+  testInfoAvailable = existTestInfo(rootChain);
+  if (truthAvailable) printf("Truth information is available ...\n");
+  else printf("Truth information is not available ...\n");
+  if (testInfoAvailable) printf("Test information is available ...\n");
+  else printf("Test information is not available ...\n");
 
   const Int_t nEntries = rootChain->GetEntries();
-  const UInt_t nel_Events = getEleEntries(rootChain);
+  UInt_t n_particles, n_test_particles;
+  getNumberOfClusters(rootChain,n_particles,n_test_particles);
 
   printf("Found %d events ...\n", nEntries );
-  printf("Found %d electron clusters...\n", nel_Events);
+  printf("Found %d electron clusters...\n", n_particles);
+  if (testInfoAvailable)
+    printf("Found %d electron test clusters...\n", n_test_particles);
   
   const UInt_t ringSize = getRingSize(rootChain);
   printf("Ring size is %d rings...\n", ringSize);
   
   printf("Loading the rings...\n");
-  plhs[OUT_MAT_STR] = getRings(rootChain, nel_Events, ringSize);
+  plhs[OUT_MAT_STR] = getD3PDInfo(rootChain, ringSize, n_particles, n_test_particles);
   
   printf("Deletting ROOT TChain ...\n");
   delete rootChain;

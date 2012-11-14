@@ -643,9 +643,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       if((el_isEM & stdeg_req[1])){
         for(size_t n = 0; n < pid_size;++n){
           corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-          if(TMath::Abs(el_eta)<1.3) // Barrel
+          if(TMath::Abs(el_eta)<crack_lb) // Barrel
             corr_map->find(Key_t1(eg_key::Barrel,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-          else if(TMath::Abs(el_eta)>1.6) // Endcap
+          else if(TMath::Abs(el_eta)>crack_ub) // Endcap
             corr_map->find(Key_t1(eg_key::Endcap,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
           else // Crack region
             corr_map->find(Key_t1(eg_key::CrackRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
@@ -667,9 +667,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
           // Fill corr maps
           for(size_t n = 0; n < pid_size;++n){
             corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            if(TMath::Abs(el_eta)<1.3) // Barrel
+            if(TMath::Abs(el_eta)<crack_lb) // Barrel
               corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else if(TMath::Abs(el_eta)>1.6) // Endcap
+            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
               corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
             else // Crack region
               corr_map->find(Key_t1(eg_key::CrackRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
@@ -697,9 +697,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         if((el_isEM & stdeg_req[1])){
           for(size_t n = 0; n < pid_size;++n){
             corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            if(TMath::Abs(el_eta)<1.3) // Barrel
+            if(TMath::Abs(el_eta)<crack_lb) // Barrel
               corr_map->find(Key_t1(eg_key::Barrel,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else if(TMath::Abs(el_eta)>1.6) // Endcap
+            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
               corr_map->find(Key_t1(eg_key::Endcap,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
             else // Crack region
               corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
@@ -720,9 +720,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
             // Fill corr maps
             for(size_t n = 0; n < pid_size;++n){
               corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              if(TMath::Abs(el_eta)<1.3) // Barrel
+              if(TMath::Abs(el_eta)<crack_lb) // Barrel
                 corr_map->find(Key_t1(eg_key::Barrel,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              else if(TMath::Abs(el_eta)>1.6) // Endcap
+              else if(TMath::Abs(el_eta)>crack_ub) // Endcap
                 corr_map->find(Key_t1(eg_key::Endcap,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
               else // Crack region
                 corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
@@ -1171,6 +1171,7 @@ void D3PDAnalysis::draw(){
   drawEfficiencyPlots(); outFile->Flush();
   drawCorrelationPlots(); outFile->Flush();
   drawROC(); outFile->Flush();
+  if(doHtmlOutput) print_html_tables();
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::draw()" << std::endl;
@@ -1824,40 +1825,46 @@ void D3PDAnalysis::printEffHtmlTable(const char *effName){
 #endif
 
 
+  gSystem->cd(ana_place.c_str()); // Get back to base analysis dir
+
   std::vector<std::vector<float> > *eff_rate;
-  if(std::string(effName) == yAxis_special[0])
+  std::string outputName;
+  if(std::string(effName) == yAxis_special[0]){
     eff_rate = det_rate;
-  else
+    outputName = "det_rate.html";
+
+  } else {
     eff_rate = fa_rate;
-  std::streamsize oldPres = std::cout.precision(2);
-  std::cout.setf(std::ios::fixed,std::ios::floatfield);
-  // Neural network efficiency with respect to Standard Egamma:
-  std::cout << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
-  std::cout << "<tr><th rowspan=\"2\" colspan=\"2\" width=\"400\" size=\"4\"> " + std::string(effName) + 
-    " (\%)</h3></th><th colspan=4\" width=\"400\"><h3>Standard E/&gamma; Algorithm</h3></th>" << std::endl;
-  std::cout << "<tr>" << std::endl;
-  std::cout << "<td>All Data</td>" << std::endl;
-  std::cout << "<td>Loose</td>" << std::endl;
-  std::cout << "<td>Medium</td>" << std::endl;
-  std::cout << "<td>Tight</td>" << std::endl;
-  std::cout << "</tr> " << std::endl;
-  std::cout << "<tr> " << std::endl;
-  std::cout << "<th rowspan=\"4\"><div class=\"verticaltext\"><h3>Calorimeter Ringer E/&gamma; Algorithm</h3></div></th>" << std::endl;
-  std::cout << "<td>All Data</td>" << std::endl;
-  std::cout << "<td>   -   </td>" << std::endl;
-  for(size_t i = 1; i < req_size;++i)// Loop over ringer requirements
-    std::cout << "<td>"  << (*eff_rate)[0][i] << "</td>" << std::endl;
-  std::cout << "</tr>" << std::endl;
-  for(size_t i = 1; i < req_size;++i){ // Loop over ringer requirements
-    std::cout << std::string("<td>NN ") + req[i] + "</td>" << std::endl;
-    for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
-      std::cout << "<td>"  << (*eff_rate)[i][j]<< "</td>" << std::endl;
-    }
-    std::cout << "</tr>" << std::endl;
+    outputName = "fa_rate.html";
   }
-  std::cout << "</table></br></br>" << std::endl;
-  std::cout.unsetf(std::ios::fixed);
-  std::cout.precision(oldPres);
+  std::ofstream outFile( (ana_name + "_" + outputName).c_str()); // output
+  outFile.precision(2);
+  outFile.setf(std::ios::fixed,std::ios::floatfield);
+  // Neural network efficiency with respect to Standard Egamma:
+  outFile << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
+  outFile << "<tr><th rowspan=\"2\" colspan=\"2\" width=\"400\" size=\"4\"> " + std::string(effName) + 
+    " (\%)</h3></th><th colspan=4\" width=\"400\"><h3>Standard E/&gamma; Algorithm</h3></th>" << std::endl;
+  outFile << "<tr>" << std::endl;
+  outFile << "<td>All Data</td>" << std::endl;
+  outFile << "<td>Loose</td>" << std::endl;
+  outFile << "<td>Medium</td>" << std::endl;
+  outFile << "<td>Tight</td>" << std::endl;
+  outFile << "</tr> " << std::endl;
+  outFile << "<tr> " << std::endl;
+  outFile << "<th rowspan=\"4\"><div class=\"verticaltext\"><h3>Calorimeter Ringer E/&gamma; Algorithm</h3></div></th>" << std::endl;
+  outFile << "<td>All Data</td>" << std::endl;
+  outFile << "<td>   -   </td>" << std::endl;
+  for(size_t i = 1; i < req_size;++i)// Loop over ringer requirements
+    outFile << "<td>"  << (*eff_rate)[0][i] << "</td>" << std::endl;
+  outFile << "</tr>" << std::endl;
+  for(size_t i = 1; i < req_size;++i){ // Loop over ringer requirements
+    outFile << std::string("<td>NN ") + req[i] + "</td>" << std::endl;
+    for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
+      outFile << "<td>"  << (*eff_rate)[i][j]<< "</td>" << std::endl;
+    }
+    outFile << "</tr>" << std::endl;
+  }
+  outFile << "</table></br></br>" << std::endl;
 
 #if DEBUG >= DEBUG_MSGS
     std::cout << "Finished printEffHtmlTable()" << std::endl;
@@ -1874,51 +1881,56 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
     std::cout << "On printDetailedTruthHtmlTable()" << std::endl;
 #endif
 
-  std::string ds_name;
+  gSystem->cd(ana_place.c_str()); // Get back to base analysis dir
+
+  std::string ds_name, outputName;
   eg_key::DATASET ds;
   if(d3pd == sgn){
     ds_name = "Signal";
     ds = eg_key::SignalFullDs;
+    outputName = "sinal_detailed_truth.html";
   } else{
     ds_name = "Background";
+    outputName = "background_detailed_truth.html";
     ds = eg_key::Background;
   }
 
-  std::streamsize oldPres = std::cout.precision(2);
-  std::cout.setf(std::ios::fixed,std::ios::floatfield);
-  std::cout << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
-  std::cout << "<th rowspan=\"2\" size=\"4\"> Particles from " << ds_name  << " Dataset </br> " <<
+  std::ofstream outFile( (ana_name + "_" + outputName).c_str()); // output
+  outFile.precision(2); // std::streamsize oldPres = 
+  outFile.setf(std::ios::fixed,std::ios::floatfield);
+  outFile << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
+  outFile << "<th rowspan=\"2\" size=\"4\"> Particles from " << ds_name  << " Dataset </br> " <<
     " (Data Percentage) [Efficiency Rates (\%)] </br> </th><th colspan=\"3\"><h3>Offline Ringer" << 
     "</h3></th><th colspan=\"3\"><h3>Offline Standard E/&gamma;</h3></th>" << std::endl;
-  std::cout << "<tr>" << std::endl;
-  std::cout << "<td width=\"75\">Loose</td>" << std::endl;
-  std::cout << "<td width=\"75\">Medium</td>" << std::endl;
-  std::cout << "<td width=\"75\">Tight</td>" << std::endl;
-  std::cout << "<td width=\"75\">Loose</td>" << std::endl;
-  std::cout << "<td width=\"75\">Medium</td>" << std::endl;
-  std::cout << "<td width=\"75\">Tight</td>" << std::endl;
-  std::cout << "</tr>" << std::endl;
+  outFile << "<tr>" << std::endl;
+  outFile << "<td width=\"75\">Loose</td>" << std::endl;
+  outFile << "<td width=\"75\">Medium</td>" << std::endl;
+  outFile << "<td width=\"75\">Tight</td>" << std::endl;
+  outFile << "<td width=\"75\">Loose</td>" << std::endl;
+  outFile << "<td width=\"75\">Medium</td>" << std::endl;
+  outFile << "<td width=\"75\">Tight</td>" << std::endl;
+  outFile << "</tr>" << std::endl;
   for(size_t j = 0; j < truth::LastTPart;++j){
     TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds))->second;
     Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
-    std::cout << "<tr>" << std::endl;
+    outFile << "<tr>" << std::endl;
     if(!j)
-      std::cout << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
+      outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
     else
-      std::cout << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
+      outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
     for(size_t k = 0; k < alg_size;++k){
       for(size_t m = eg_key::Loose; m < req_size;++m){
         TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds,req[m],alg[k]))->second;
-        std::cout<<"<td>"<<eff_holder->GetEfficiency(j+1)*100 << "(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
+        outFile<<"<td>"<<eff_holder->GetEfficiency(j+1)*100 << "(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
           << "-" << eff_holder->GetEfficiencyErrorLow(j+1)*100 << ")</td>";
       }
-      std::cout << std::endl;
+      outFile << std::endl;
     }
-    std::cout << "</tr>" <<  std::endl;
+    outFile << "</tr>" <<  std::endl;
   }
-  std::cout << "</table></br></br>" << std::endl;
-  std::cout.unsetf(std::ios::fixed);
-  std::cout.precision(oldPres);
+  outFile << "</table></br></br>" << std::endl;
+  //outFile.unsetf(std::ios::fixed);
+  //outFile.precision(oldPres);
 
 #if DEBUG >= DEBUG_MSGS
     std::cout << "Finished printDetailedTruthHtmlTable()" << std::endl;

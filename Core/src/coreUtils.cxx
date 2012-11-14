@@ -124,6 +124,10 @@ void enableUsedBranches(TTree *d3pd){
     d3pd->SetBranchStatus("el_truth_motherbarcode",1);  // activate branchname        
     d3pd->SetBranchStatus("el_truth_matched",1);  // activate branchname        
   }
+  if(d3pd->FindBranch("el_n_test")){
+    d3pd->SetBranchStatus("el_n_test",1);  // activate branchname        
+    d3pd->SetBranchStatus("el_is_testCluster",1);  // activate branchname        
+  }
   d3pd->SetBranchStatus("el_n",1);  // activate branchname        
   d3pd->SetBranchStatus("el_eta",1);  // activate branchname       
   d3pd->SetBranchStatus("el_phi",1);  // activate branchname       

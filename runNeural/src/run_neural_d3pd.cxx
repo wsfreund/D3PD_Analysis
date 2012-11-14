@@ -27,32 +27,33 @@ int main(int argc, char *argv[]){
     readInputs(argc,argv,running_opts);
     Neural *theNN = readNN(running_opts);
 #ifdef DEBUG
-    std::cout << "Selected Root files are: " << running_opts.listFileName << std::endl;
-    std::cout << "fileNN: " << running_opts.fileNN << std::endl;
-    std::cout << "normVec: ";
+    std::cout << "------ Configuration for run_neural_d3pd: " << std::endl;
+    std::cout << "-- Selected Root files are: " << running_opts.listFileName << std::endl;
+    std::cout << "-- fileNN: " << running_opts.fileNN << std::endl;
+    std::cout << "-- normVec: ";
     for(unsigned i = 0; i < running_opts.normVec.size(); ++i)
       std::cout << running_opts.normVec[i] << " ";
     std::cout << std::endl;
-    std::cout << "outputFile: " << running_opts.outputFile << std::endl;
-    std::cout << "mean_trn_ds: " << running_opts.mean_trn_ds << std::endl;
-    std::cout << "std_trn_ds: " << running_opts.std_trn_ds << std::endl;
-    std::cout << "doTestOnly: " << running_opts.doTestOnly << std::endl;
-    std::cout << "doUseTrnInfoOnNNFile: " << running_opts.doUseTrnInfoOnNNFile << std::endl;
-    std::cout << "sgnCluster_size: " << running_opts.sgnCluster_size << std::endl;
-    std::cout << "bkgCluster_size: " << running_opts.bkgCluster_size << std::endl;
-    std::cout << "testSgnClusters: ";
+    std::cout << "-- outputFile: " << running_opts.outputFile << std::endl;
+    std::cout << "-- mean_trn_ds: " << running_opts.mean_trn_ds << std::endl;
+    std::cout << "-- std_trn_ds: " << running_opts.std_trn_ds << std::endl;
+    std::cout << "-- doTestOnly: " << running_opts.doTestOnly << std::endl;
+    std::cout << "-- doUseTrnInfoOnNNFile: " << running_opts.doUseTrnInfoOnNNFile << std::endl;
+    std::cout << "-- sgnCluster_size: " << running_opts.sgnCluster_size << std::endl;
+    std::cout << "-- bkgCluster_size: " << running_opts.bkgCluster_size << std::endl;
+    std::cout << "-- testSgnClusters: ";
     for(unsigned i = 0; i < running_opts.testSgnClusters.size(); ++i)
       std::cout << running_opts.testSgnClusters[i] << " ";
     std::cout << std::endl;
-    std::cout << "testBkgClusters: ";
+    std::cout << "-- testBkgClusters: ";
     for(unsigned i = 0; i < running_opts.testBkgClusters.size(); ++i)
       std::cout << running_opts.testBkgClusters[i] << " ";
     std::cout << std::endl;
-    std::cout << "ringerNNTrnWrt: " << running_opts.ringerNNTrnWrt << std::endl;
-    std::cout << "sgnTrnPdgIdType: " << running_opts.sgnTrnPdgIdType << std::endl;
-    std::cout << "sgnTrnMotherPdgIdType: " << running_opts.sgnTrnMotherPdgIdType << std::endl;
-    std::cout << "sgnTrnIsEM_mask: " << running_opts.sgnTrnIsEM_mask << std::endl;
-    std::cout << "bkgTrnIsEM_mask: " << running_opts.bkgTrnIsEM_mask << std::endl;
+    std::cout << "-- ringerNNTrnWrt: " << running_opts.ringerNNTrnWrt << std::endl;
+    std::cout << "-- sgnTrnPdgIdType: " << running_opts.sgnTrnPdgIdType << std::endl;
+    std::cout << "-- sgnTrnMotherPdgIdType: " << running_opts.sgnTrnMotherPdgIdType << std::endl;
+    std::cout << "-- sgnTrnIsEM_mask: " << running_opts.sgnTrnIsEM_mask << std::endl;
+    std::cout << "-- bkgTrnIsEM_mask: " << running_opts.bkgTrnIsEM_mask << std::endl;
 #endif
 
     runNN(theNN,running_opts);
@@ -85,8 +86,8 @@ int main(int argc, char *argv[]){
         exit(-1);
         break;
     }
-  }catch(...){
-    std::cout << "Unknown error" << std::endl;
+  }catch(std::exception &e){
+    std::cout << e.what() << std::endl;
   }
 }
 
@@ -183,14 +184,14 @@ void readInputs(int argc, char *argv[], opts &setOpts){
         ++ip;
         if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
           setOpts.doTestOnly = atoi(argv[ip++]);
-        } else if (ip < argc || std::string(argv[ip]).substr(0,2) == "--" ) {
+        } else {
           setOpts.doTestOnly = true;
         }
       } else if (std::string(argv[ip]) == "--doUseTrnInfoOnNNFile") {
         ++ip;
         if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
           setOpts.doUseTrnInfoOnNNFile = atoi(argv[ip++]);
-        } else if (ip < argc || std::string(argv[ip]).substr(0,2) == "--" ) {
+        } else {
           setOpts.doUseTrnInfoOnNNFile = true;
         }
       } else if (std::string(argv[ip]) == "--sgnCluster_size") {
@@ -346,7 +347,7 @@ void help() {
             << "    --fileNN [char] >\"net.py\"\n"
             << "      Name of Neural Network file, containing bias, weights and so on (created using net2py.m or d3pdexport.m).\n"
             << "    --doTestOnly [bool] >0 \n"
-            << "      Propagate only for test clusters.\n"
+            << "      Propagate only for test clusters (set this to true if you have trained a network with this dataset).\n"
             << "    --dataset [\"background\",\"signal\"] >"" \n"
             << "      If doing only test clusters, it is needed to sinalize which dataset is being propagated.\n"
             << "    --doUseTrnInfoOnNNFile [bool] >1 \n"
@@ -694,59 +695,34 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   // Enable only reading branches:
   enableUsedBranches(inputChain);
 
-  bool doTruth = inputChain->FindBranch("el_truth_type");
+  bool truthAvailable = inputChain->FindBranch("el_truth_type");
+  if(setOpts.doTestOnly && setOpts.ringerNNTrnWrt == Truth && !truthAvailable){
+    std::cerr << "Truth not available on this dataset, and it was demanded to use it info to check test clusters." << std::endl;
+    throw BAD_INPUT;
+  }
 
   // Read branches:
-  Int_t el_n;
+  int el_n, el_n_test;
   std::vector<std::vector<float> > *ringsVector = new std::vector<std::vector <float> >;
   std::vector<double> *nn_output = new std::vector<double>;
-  std::vector<int> *el_truth_type = (doTruth)?new std::vector<int>:0;
-  std::vector<int> *el_truth_mothertype = (doTruth)?new std::vector<int>:0;
-  std::vector<int> *el_truth_status = (doTruth)?new std::vector<int>:0;
-  std::vector<int> *el_truth_barcode = (doTruth)?new std::vector<int>:0;
-  std::vector<int> *el_truth_motherbarcode = (doTruth)?new std::vector<int>:0;
-  std::vector<int> *el_truth_matched = (doTruth)?new std::vector<int>:0;
-  std::vector<unsigned> *el_isEM = new std::vector<unsigned>;
-  std::vector<float> *el_eta = new std::vector<float>;
-  std::vector<float> *el_phi = new std::vector<float>;
-  std::vector<float> *el_E = new std::vector<float>;
-  std::vector<float> *el_reta = new std::vector<float>;
-  std::vector<float> *el_emaxs1 = new std::vector<float>;
-  std::vector<float> *el_Emax2 = new std::vector<float>;
-  std::vector<float> *el_Ethad1 = new std::vector<float>;
-  std::vector<float> *el_ws3 = new std::vector<float>;
-  std::vector<float> *el_weta2 = new std::vector<float>;
-
-  std::vector<std::vector<float>* >vecList; // This vector will be used to clear inputs  
-  std::vector<std::vector<int>* >vecList_truth; // This vector will be used to clear inputs  
+  // Info needed if separing test clusters
+  std::vector<int> *el_truth_type = (setOpts.doTestOnly&&setOpts.ringerNNTrnWrt==Truth)?
+    new std::vector<int>:0;
+  std::vector<int> *el_truth_mothertype = (setOpts.doTestOnly)?new std::vector<int>:0;
+  std::vector<unsigned> *el_isEM = (setOpts.doTestOnly)?new std::vector<unsigned>:0;
+  std::vector<unsigned> *el_is_testCluster = (setOpts.doTestOnly)?new std::vector<unsigned>:0;
 
   // Set Addresses:
-  if(doTruth){
-    inputChain->SetBranchAddress("el_truth_type",&el_truth_type); vecList_truth.push_back(el_truth_type);
-    inputChain->SetBranchAddress("el_truth_mothertype",&el_truth_mothertype);vecList_truth.push_back(el_truth_mothertype);
-    inputChain->SetBranchAddress("el_truth_status",&el_truth_status);vecList_truth.push_back(el_truth_status);
-    inputChain->SetBranchAddress("el_truth_barcode",&el_truth_barcode);vecList_truth.push_back(el_truth_barcode);
-    inputChain->SetBranchAddress("el_truth_motherbarcode",&el_truth_motherbarcode);vecList_truth.push_back(el_truth_motherbarcode);
-    inputChain->SetBranchAddress("el_truth_matched",&el_truth_matched);vecList_truth.push_back(el_truth_matched);
+  if(setOpts.doTestOnly&&setOpts.ringerNNTrnWrt==Truth){
+    inputChain->SetBranchAddress("el_truth_type",&el_truth_type);
+    inputChain->SetBranchAddress("el_truth_mothertype",&el_truth_mothertype);
   }
-  inputChain->SetBranchAddress("el_n",&el_n); // Special routine
-  inputChain->SetBranchAddress("el_rings_E",&ringsVector);// Special routine
-  inputChain->SetBranchAddress("el_ringernn",&nn_output);// Special routine
-  inputChain->SetBranchAddress("el_isEM",&el_isEM); // Special routine
-  inputChain->SetBranchAddress("el_eta",&el_eta);vecList.push_back(el_eta);
-  inputChain->SetBranchAddress("el_phi",&el_phi);vecList.push_back(el_phi);
-  inputChain->SetBranchAddress("el_E",&el_E);vecList.push_back(el_E);
-  inputChain->SetBranchAddress("el_reta",&el_reta);vecList.push_back(el_reta);
-  inputChain->SetBranchAddress("el_emaxs1",&el_emaxs1);vecList.push_back(el_emaxs1);
-  inputChain->SetBranchAddress("el_Emax2",&el_Emax2);vecList.push_back(el_Emax2);
-  inputChain->SetBranchAddress("el_Ethad1",&el_Ethad1);vecList.push_back(el_Ethad1);
-  inputChain->SetBranchAddress("el_ws3",&el_ws3);vecList.push_back(el_ws3);
-  inputChain->SetBranchAddress("el_weta2",&el_weta2);vecList.push_back(el_weta2);
+  inputChain->SetBranchAddress("el_n",&el_n);
+  inputChain->SetBranchAddress("el_rings_E",&ringsVector);
+  inputChain->SetBranchAddress("el_ringernn",&nn_output);
+  inputChain->SetBranchAddress("el_isEM",&el_isEM);
   
-  size_t vecList_truth_size = vecList_truth.size();
-  size_t vecList_size = vecList.size();
-
-  // Will hold inputs to isTestCluster:
+  // These will hold inputs to isTestCluster:
   void *input1 = 0;
   void *input2 = 0;
 
@@ -779,10 +755,8 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     inputChain->GetEntry(jentry);
     nn_output->clear();
-    std::vector<unsigned> non_test_idx; // Hold training and validation indexes
     for (Int_t index_el=0; index_el < el_n; ++index_el ){
       if(setOpts.doTestOnly && !isTestCluster(setOpts,index_el,input1,input2)){
-        non_test_idx.push_back(index_el); // Push index
         continue;
       }
       // If we arived here, this is a testing particle:
@@ -790,38 +764,43 @@ void runNN(const Neural *the_nn,const opts &setOpts){
       normalize(rings,setOpts); // normalize them
       nn_output->push_back(the_nn->propagate(rings)); // and propagate
     }
-    if(setOpts.doTestOnly){ // Remove non test particles
-      el_n -= non_test_idx.size();
-      if(doTruth){
-        // Empty truth branches containing non test particles:
-        for(unsigned k = 0; k < vecList_truth_size;++k){
-          emptyVec(vecList_truth.at(k),non_test_idx);
-        }
-      }
-      // Empty variables branches containing non test particles:
-      for(unsigned k = 0; k < vecList_size;++k){
-        emptyVec(vecList.at(k),non_test_idx);
-      }
-      // Empty isEM non test particles:
-      emptyVec(el_isEM, non_test_idx);
-      // Empty ringsVector non test particles:
-      emptyVec(ringsVector, non_test_idx);
-    }
     // Write:
     outputTree->Fill();
   }
 
+  if(setOpts.doTestOnly){ // Add 2 branches containing test information:
+    TBranch *b_el_is_testCluster = outputTree->Branch("el_is_testCluster",&el_is_testCluster);
+    TBranch *b_el_n_test = outputTree->Branch("el_n_test",&el_n_test,"el_n_test/I");
+    for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      inputChain->GetEntry(jentry);
+      unsigned non_test_events = 0;
+      el_is_testCluster->assign(el_n,0); // clear vector
+      for (Int_t index_el=0; index_el < el_n; ++index_el ){
+        if(!isTestCluster(setOpts,index_el,input1,input2)){
+          ++non_test_events;
+          continue;
+        }
+        el_is_testCluster->at(index_el) = 1; // flag to tag test cluster
+      }
+      el_n_test = el_n - non_test_events;
+      b_el_is_testCluster->Fill();
+      b_el_n_test->Fill();
+    }
+  }
+
   TFile *outputFile = new TFile(setOpts.outputFile.c_str(),"recreate");
-  outputTree->Write();
+  outputTree->Write("",TObject::kOverwrite);
   outputFile->Write();
-  if(doTruth) delete el_truth_type; if(doTruth) delete el_truth_mothertype; if(doTruth) delete el_truth_status;
-  if(doTruth) delete el_truth_barcode; if(doTruth) delete el_truth_motherbarcode; if(doTruth) delete el_truth_matched;
-  delete el_isEM; delete el_eta; delete el_phi; delete el_E; delete el_reta; delete el_emaxs1;
-  delete el_Emax2; delete el_Ethad1; delete el_ws3; delete el_weta2;
+  if(setOpts.doTestOnly&&setOpts.ringerNNTrnWrt==Truth) {
+    delete el_truth_type; 
+    delete el_truth_mothertype; 
+  }
+  delete el_isEM; 
   delete outputFile;
   delete inputChain;
   delete ringsVector;
   delete nn_output;
+  if(setOpts.doTestOnly) delete el_is_testCluster;
 
 }
 

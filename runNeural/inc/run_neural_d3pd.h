@@ -10,6 +10,7 @@
 #include <string>
 #include <fstream>
 #include <stdlib.h>
+#include <exception>
 
 // Custom includes
 #include "Neural.h"
