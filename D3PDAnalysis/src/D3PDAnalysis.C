@@ -14,14 +14,17 @@ void D3PDAnalysis::init(){
   gSystem->cd(ana_place.c_str());
   outFile = new TFile( (ana_name + ".root").c_str(),"recreate");
 
+  if(sgn->fChain->FindBranch("el_n_test"))
+    useTestOnlySgn = true;
+  if(bkg->fChain->FindBranch("el_n_test"))
+    useTestOnlyBkg = true;
+
   setEtHists();
   if(doTruth) setParticlesHists();
   setNNOutHits();
   setEffVarHists();
   setCorrHists();
-  if(doDetailedTruth){
-    setDetailedTruthEff();
-  }
+  if(doDetailedTruth) setDetailedTruthEff();
 
 #if DEBUG >= DEBUG_MSGS
   printMaps();
@@ -40,6 +43,16 @@ void D3PDAnalysis::printMaps() const{
     for(std::map<Key_t1,TH1F*>::iterator i=et_energy_map->begin();
         i!=et_energy_map->end();++i){
       std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
+    }
+  }
+  if(useTestOnlySgn||useTestOnlyBkg&&!doUseRingerTestOnStd){
+    if(et_energy_test_map){
+      std::cout << "---------------------" << std::endl;
+      std::cout << "Energy Test Map Keys: " << et_energy_test_map->size() << std::endl;
+      for(std::map<Key_t1,TH1F*>::iterator i=et_energy_test_map->begin();
+          i!=et_energy_test_map->end();++i){
+        std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
+      }
     }
   }
   if(particles_map){
@@ -126,6 +139,15 @@ void D3PDAnalysis::setEtHists(){
     TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,1);
     hist->SetBit(TH1::kCanRebin);
     et_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist));
+  }
+
+  if(useTestOnlySgn||useTestOnlyBkg&&!doUseRingerTestOnStd){
+    et_energy_test_map = new std::map<Key_t1,TH1F*>();
+    for(unsigned i = 0; i < ds_size;++i){
+      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,1);
+      hist->SetBit(TH1::kCanRebin);
+      et_energy_test_map->insert(std::make_pair(Key_t1(ds[i]),hist));
+    }
   }
 
 #if DEBUG >= DEBUG_MSGS
@@ -253,16 +275,16 @@ void D3PDAnalysis::setEffVarHists(){
   // Now create hists:
   for(size_t i = 0; i < ds_size;++i){
     for(size_t j = 0; j < var_size;++j){
-      // Base hists:
-      Key_t1 key(ds[i],var[j]);
-      var_dist_map->insert(
-          std::make_pair(key,
-            new TH1F(
-              (key.get_var() + std::string(" Distribution for ") + key.get_ds()).c_str(),
-              (var_special[j] + std::string(" Distribution for ") + key.get_ds()).c_str(),
-              100,var_lb[j],var_ub[j])
-          ));
       for(size_t m = 0; m < alg_size;++m){
+        // Base hists:
+        Key_t1 key(ds[i],var[j],alg[m]);
+        var_dist_map->insert(
+            std::make_pair(key,
+              new TH1F(
+                (key.get_var() + std::string(" Distribution for ") + key.get_ds() + "and Algorithm " + key.get_alg()).c_str(),
+                (var_special[j] + std::string(" Distribution for ") + key.get_ds() + " and Algorithm " + key.get_alg()).c_str(),
+                100,var_lb[j],var_ub[j])
+            ));
         for(size_t n = eg_key::Loose; n < req_size;++n){
           Key_t1 key(ds[i],alg[m],req[n],var[j]);
           TH1F* hist = new TH1F( 
@@ -355,12 +377,12 @@ void D3PDAnalysis::setDetailedTruthEff(){
   detailedTruthEff_map = new std::map<Key_t1,TEfficiency*>();
 
   for(size_t i = 0; i < nDs;++i){
-    TH1F* hist = new TH1F( 
-      (std::string(" Alldata Particles counter Dataset: ") + ds[i] ).c_str(),
-      (std::string(" Alldata Particles counter Dataset: ") + ds[i] ).c_str(),
-      truth::LastTPart,truth::TruthSignal,truth::LastTPart);
-    detailedTruthCounter_map->insert(std::make_pair(Key_t1(ds[i]),hist));
     for(size_t m = 0; m < alg_size;++m){
+      TH1F* hist = new TH1F( 
+        (std::string(" Alldata Particles counter Dataset ") + ds[i] + " and Algorithm:" + alg[m]).c_str(),
+        (std::string(" Alldata Particles counter Dataset ") + ds[i] + " and Algorithm:" + alg[m]).c_str(),
+        truth::LastTPart,truth::TruthSignal,truth::LastTPart);
+      detailedTruthCounter_map->insert(std::make_pair(Key_t1(ds[i],alg[m]),hist));
       for(size_t n = eg_key::Loose; n < req_size;++n){
         TH1F* hist = new TH1F( 
           (std::string("Particles counter for ") + alg[m] + " " + req[n] + " for Dataset: " + ds[i] ).c_str(),
@@ -418,14 +440,6 @@ void D3PDAnalysis::loop(){
   if(doForceRingerThres){
     fastFillNeuralHists(sgn);
     fastFillNeuralHists(bkg);
-    fillDet();
-#if DEBUG >= DEBUG_MSGS
-    printDet();
-#endif
-    fillFa();
-#if DEBUG >= DEBUG_MSGS
-    printFa();
-#endif
     fillRoc();
     fillFixedThres();
     forceNNThres();
@@ -467,12 +481,15 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
 #endif
 
   eg_key::DATASET ds = eg_key::UnkDs, full_ds = eg_key::UnkDs;
+  bool doTestOnly = false; // Use only test clusters
   if(d3pd==sgn){
     ds = eg_key::Signal; 
-    if(doTruth)
-      full_ds = eg_key::SignalFullDs;
-  } else 
+    if(doTruth) full_ds = eg_key::SignalFullDs;
+    if(useTestOnlySgn) doTestOnly = true;
+  } else {
     ds = eg_key::Background;
+    if(useTestOnlyBkg) doTestOnly = true;
+  }
 
   Long64_t nentries = d3pd->fChain->GetEntriesFast();
   if (debug && nentries>100) nentries = 100;
@@ -483,8 +500,16 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
     if (ientry < 0) break;
     d3pd->fChain->GetEntry(jentry);
     // Read all Clusters:
-    for(Int_t index = 0; index < d3pd->el_n; ++index ){
+    for(Int_t index = 0, testIdx = 0; index < d3pd->el_n; ++index ){
+
       if(doTruth && d3pd==sgn) ds = eg_key::BackgroundFromSignalDs; // Reset ds to decide if it is signal or not
+
+      const bool isTest = (doTestOnly)?(*d3pd->el_is_testCluster)[index]:1; // Here we set if this cluster should be tested
+                                                                            // or it should be skipped by Ringer algorithm
+                                                                            // as it was used in training.
+      if(!isTest)
+        continue;
+
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
       // Use test dataset only:
 
@@ -509,6 +534,7 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
           }
         } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
       }
+      ++testIdx;
     }
   }
 
@@ -526,16 +552,18 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 #endif
   // Configurations:
   eg_key::DATASET ds = eg_key::UnkDs, full_ds = eg_key::UnkDs;
+
+  bool doTestOnly = false; // Use only test clusters
+
   if(d3pd==sgn){
     ds = eg_key::Signal; 
-    if(doTruth)
-      full_ds = eg_key::SignalFullDs;
+    if(useTestOnlySgn) doTestOnly = true;
+    if(doTruth) full_ds = eg_key::SignalFullDs;
   } else {
     ds = eg_key::Background;
-    if(doTruth)
-      full_ds = eg_key::Background;
+    if(doTruth) full_ds = eg_key::Background;
+    if(useTestOnlyBkg) doTestOnly = true;
   }
-
 
   // Number of entries to read:
   Long64_t nentries = d3pd->fChain->GetEntriesFast();
@@ -548,13 +576,20 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
     if (ientry < 0) break;
     d3pd->fChain->GetEntry(jentry);
     // Read all Clusters:
-    for(Int_t index = 0; index < d3pd->el_n; ++index ){
+    for(Int_t index = 0, testIdx = 0; index < d3pd->el_n; ++index ){
       if(doTruth && d3pd==sgn) ds = eg_key::BackgroundFromSignalDs; // Reset ds to decide if it is signal or not
+
+      const bool isTest = (doTestOnly)?(*d3pd->el_is_testCluster)[index]:1; // Here we set if this cluster should be tested
+                                                                            // or it should be skipped by Ringer algorithm
+                                                                            // as it was used in training.
+
+      if(doUseRingerTestOnStd&&!isTest) // if we want to use same test to both algorithms
+        continue; // then we continue when it is not a ringer test clusters
 
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
 
       // Re-define more useful variables:
-      const Float_t &el_nnOutput = (*d3pd->el_ringernn)[index];
+      const Float_t &el_nnOutput = (*d3pd->el_ringernn)[testIdx];
       const Float_t &el_eta = (*d3pd->el_eta)[index];
       const Float_t &el_phi = (*d3pd->el_phi)[index];
       const Float_t &el_et  = (*d3pd->el_E)[index]/TMath::CosH(el_eta)*1e-3; // Put units on GeV
@@ -566,6 +601,7 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       const Float_t &el_weta2 = (*d3pd->el_weta2)[index];
       const Float_t &el_hadleakage = (*d3pd->el_Ethad1)[index];
       const Float_t cur_pid[] = {el_reta, el_eRatio, el_weta, el_weta2, el_hadleakage}; // Put pids on array, same order than pid
+
 
       if(doTruth){
         const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
@@ -581,11 +617,13 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
                 ->Fill(el_truth_type); // and fill it
             // else break;
           }
-          for(unsigned k = eg_key::Loose; k < req_size;++k){
-            if( (el_nnOutput > ring_req[k])) // Did it pass ring_req[k]?
-              particles_map->find(Key_t1(full_ds,eg_key::OffRinger,req[k]))->second // then get hist
-                ->Fill(el_truth_type); // and fill it
-            // else  break;
+          if(isTest){
+            for(unsigned k = eg_key::Loose; k < req_size;++k){
+              if( (el_nnOutput > ring_req[k])) // Did it pass ring_req[k]?
+                particles_map->find(Key_t1(full_ds,eg_key::OffRinger,req[k]))->second // then get hist
+                  ->Fill(el_truth_type); // and fill it
+              // else  break;
+            }
           }
           // Use truth to set if particle is or not signal:
           if((TMath::Abs(el_truth_type) == signalPdgId) && 
@@ -597,31 +635,31 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         if(doDetailedTruth){
           if((TMath::Abs(el_truth_type) == signalPdgId) && 
               (el_truth_mothertype == signalMotherPdgId)){ // Then it s signal
-            fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput);
+            fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput,isTest);
           }else{ // It is not signal:
             switch(TMath::Abs(el_truth_type)){
               case truth::Electron_type:
-                fillDetailedTruthCounterFor(truth::Electron,full_ds,el_isEM,el_nnOutput);
+                fillDetailedTruthCounterFor(truth::Electron,full_ds,el_isEM,el_nnOutput,isTest);
               break;
               case truth::Photon_type:
                 if(el_truth_mothertype!=truth::Pion0_type)
-                  fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput);
+                  fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput,isTest);
                 else
-                  fillDetailedTruthCounterFor(truth::Photon,full_ds,el_isEM,el_nnOutput);
+                  fillDetailedTruthCounterFor(truth::Photon,full_ds,el_isEM,el_nnOutput,isTest);
               break;
               case truth::Pion_type:
-                fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput);
+                fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput,isTest);
               break;
               case truth::Kaon_type:
               case truth::Kaon0s_type:
               case truth::Kaon0l_type:
-                fillDetailedTruthCounterFor(truth::Kaon,full_ds,el_isEM,el_nnOutput);
+                fillDetailedTruthCounterFor(truth::Kaon,full_ds,el_isEM,el_nnOutput,isTest);
               break;
               case truth::Unmatched_type:
-                fillDetailedTruthCounterFor(truth::Unmatched,full_ds,el_isEM,el_nnOutput);
+                fillDetailedTruthCounterFor(truth::Unmatched,full_ds,el_isEM,el_nnOutput,isTest);
               break;
               default:
-                fillDetailedTruthCounterFor(truth::Other,full_ds,el_isEM,el_nnOutput);
+                fillDetailedTruthCounterFor(truth::Other,full_ds,el_isEM,el_nnOutput,isTest);
             }
           }
         }
@@ -629,80 +667,95 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
       // Fill tranverse energy map:
       et_energy_map->find(Key_t1(ds))->second->Fill(el_et);
+      if(useTestOnlySgn||useTestOnlyBkg&&!doUseRingerTestOnStd){
+        if(isTest)
+          et_energy_test_map->find(Key_t1(ds))->second->Fill(el_et);
+      }
 
       // Fill high binnage hist for ROC:
-      if(!doForceRingerThres)
-        nn_output_map->find(Key_t1(ds,eg_key::OffRinger,eg_key::AllDataHighRes))->second->Fill(el_nnOutput);
+      if(!doForceRingerThres&&isTest)
+          nn_output_map->find(Key_t1(ds,eg_key::OffRinger,eg_key::AllDataHighRes))->second->Fill(el_nnOutput);
 
       // Fill base hists for efficiency calculation
       for(size_t n = 0; n < var_size;++n){
-        var_dist_map->find(Key_t1(ds,var[n]))->second->Fill(cur_var[n]);
+        var_dist_map->find(Key_t1(ds,var[n],eg_key::OffEgamma))->second->Fill(cur_var[n]);
       }
 
       // Fill Not Loose Correlation map:
-      if((el_isEM & stdeg_req[1])){
-        for(size_t n = 0; n < pid_size;++n){
-          corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-          if(TMath::Abs(el_eta)<crack_lb) // Barrel
-            corr_map->find(Key_t1(eg_key::Barrel,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-          else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-            corr_map->find(Key_t1(eg_key::Endcap,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-          else // Crack region
-            corr_map->find(Key_t1(eg_key::CrackRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+      if(isTest){
+        for(size_t n = 0; n < var_size;++n){
+          var_dist_map->find(Key_t1(ds,var[n],eg_key::OffRinger))->second->Fill(cur_var[n]);
         }
-      }
-      // Loop to fill other maps:
-      for(size_t i = 0; i < req_size;++i){
-        if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
-          // Fill neural output hists:
-          if(!doForceRingerThres)
-            nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
-          // If requirement is greater than Alldata:
-          if(i){
+        if((el_isEM & stdeg_req[1])){
+          for(size_t n = 0; n < pid_size;++n){
+            corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            if(TMath::Abs(el_eta)<crack_lb) // Barrel
+              corr_map->find(Key_t1(eg_key::Barrel,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
+              corr_map->find(Key_t1(eg_key::Endcap,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            else // Crack region
+              corr_map->find(Key_t1(eg_key::CrackRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+          }
+        }
+        // Loop to fill other maps:
+        for(size_t i = 0; i < req_size;++i){
+          if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
+            // Fill neural output hists:
+            if(!doForceRingerThres)
+              nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
+            // If requirement is greater than Alldata:
+            if(i){
+              // Fill efficiency hists:
+              for(size_t n = 0; n < var_size;++n){
+                var_dist_map->find(Key_t1(ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
+              }
+            }
+            // Fill corr maps
+            for(size_t n = 0; n < pid_size;++n){
+              corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              if(TMath::Abs(el_eta)<crack_lb) // Barrel
+                corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              else if(TMath::Abs(el_eta)>crack_ub) // Endcap
+                corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              else // Crack region
+                corr_map->find(Key_t1(eg_key::CrackRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            }
+          } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+        }
+        for(size_t i = 1; i < req_size;++i){
+          if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
             // Fill efficiency hists:
             for(size_t n = 0; n < var_size;++n){
-              var_dist_map->find(Key_t1(ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
+              // Fill 100 times to get percentage
+              var_dist_map->find(Key_t1(ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
             }
-          }
-          // Fill corr maps
-          for(size_t n = 0; n < pid_size;++n){
-            corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            if(TMath::Abs(el_eta)<crack_lb) // Barrel
-              corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-              corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else // Crack region
-              corr_map->find(Key_t1(eg_key::CrackRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-          }
-        } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
-      }
-      for(size_t i = 1; i < req_size;++i){
-        if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
-          // Fill efficiency hists:
-          for(size_t n = 0; n < var_size;++n){
-            // Fill 100 times to get percentage
-            var_dist_map->find(Key_t1(ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
-          }
-        } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+          } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+        }
       }
 
       // If doing signal and using truth info, we need to add full ds:
       if(d3pd == sgn && doTruth){
         et_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
+        if(useTestOnlySgn||useTestOnlyBkg&&!doUseRingerTestOnStd){
+          if(isTest)
+            et_energy_test_map->find(Key_t1(full_ds))->second->Fill(el_et);
+        }
 
         // Fill base hists for efficiency calculation
         for(size_t n = 0; n < var_size;++n){
-          var_dist_map->find(Key_t1(full_ds,var[n]))->second->Fill(cur_var[n]);
+          var_dist_map->find(Key_t1(full_ds,var[n],eg_key::OffEgamma))->second->Fill(cur_var[n]);
         }
-        if((el_isEM & stdeg_req[1])){
-          for(size_t n = 0; n < pid_size;++n){
-            corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            if(TMath::Abs(el_eta)<crack_lb) // Barrel
-              corr_map->find(Key_t1(eg_key::Barrel,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-              corr_map->find(Key_t1(eg_key::Endcap,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else // Crack region
-              corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+        if(isTest){
+          if((el_isEM & stdeg_req[1])){
+            for(size_t n = 0; n < pid_size;++n){
+              corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              if(TMath::Abs(el_eta)<crack_lb) // Barrel
+                corr_map->find(Key_t1(eg_key::Barrel,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              else if(TMath::Abs(el_eta)>crack_ub) // Endcap
+                corr_map->find(Key_t1(eg_key::Endcap,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              else // Crack region
+                corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            }
           }
         }
         for(size_t i = 0; i < req_size;++i){
@@ -718,27 +771,35 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
               }
             }
             // Fill corr maps
-            for(size_t n = 0; n < pid_size;++n){
-              corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              if(TMath::Abs(el_eta)<crack_lb) // Barrel
-                corr_map->find(Key_t1(eg_key::Barrel,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-                corr_map->find(Key_t1(eg_key::Endcap,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              else // Crack region
-                corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            if(isTest){
+              for(size_t n = 0; n < pid_size;++n){
+                corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                if(TMath::Abs(el_eta)<crack_lb) // Barrel
+                  corr_map->find(Key_t1(eg_key::Barrel,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                else if(TMath::Abs(el_eta)>crack_ub) // Endcap
+                  corr_map->find(Key_t1(eg_key::Endcap,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                else // Crack region
+                  corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              }
             }
           } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
         }
-        for(size_t i = 1; i < req_size;++i){
-          if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
-            // Fill efficiency hists:
-            for(size_t n = 0; n < var_size;++n){
-              // Fill 100 times to get percentage
-              var_dist_map->find(Key_t1(full_ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
-            }
-          } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+        if(isTest){
+          for(size_t n = 0; n < var_size;++n){
+            var_dist_map->find(Key_t1(full_ds,var[n],eg_key::OffRinger))->second->Fill(cur_var[n]);
+          }
+          for(size_t i = 1; i < req_size;++i){
+            if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
+              // Fill efficiency hists:
+              for(size_t n = 0; n < var_size;++n){
+                // Fill 100 times to get percentage
+                var_dist_map->find(Key_t1(full_ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
+              }
+            } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+          }
         }
       }
+      if(isTest) ++testIdx;
       // Finished analysing this cluster
     }
   }
@@ -753,10 +814,11 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 //========================================================================
 //========================================================================
 //========================================================================
+inline
 void D3PDAnalysis::fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
-    const Float_t el_nnOutput){
+    const Float_t el_nnOutput, const bool isTest){
   // Fill TruthSignal AllData 
-  detailedTruthCounter_map->find(Key_t1(ds))->second // then get hist
+  detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffEgamma))->second // then get hist
     ->Fill(particle); // and fill it
   for(size_t n = eg_key::Loose; n < req_size;++n){
     if( !(el_isEM & stdeg_req[n])) // Did it pass stdeg_req[k]?
@@ -764,11 +826,15 @@ void D3PDAnalysis::fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE parti
         ->Fill(particle); // and fill it
     // else break;
   }
-  for(size_t n = eg_key::Loose; n < req_size;++n){
-    if((el_nnOutput > ring_req[n])) // Did it pass ring_req[k]?
-      detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger,req[n]))->second // then get hist
-        ->Fill(particle); // and fill it
-    // else break;
+  if(isTest){
+    detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger))->second // then get hist
+      ->Fill(particle); // and fill it
+    for(size_t n = eg_key::Loose; n < req_size;++n){
+      if((el_nnOutput > ring_req[n])) // Did it pass ring_req[k]?
+        detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger,req[n]))->second // then get hist
+          ->Fill(particle); // and fill it
+      // else break;
+    }
   }
 }
 
@@ -784,6 +850,7 @@ void D3PDAnalysis::fillDet(){
     det_rate = new std::vector<std::vector<float> >(4,std::vector<float>(4,0));
   }
 
+  // TODO Change way to calculate this:
   Double_t base_integral = nn_output_map->find(Key_t1(eg_key::Signal,eg_key::AllData))->second->Integral();
   for(size_t i = 0; i < req_size;++i){ // Loop over ringer requirements
     for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
@@ -811,6 +878,7 @@ void D3PDAnalysis::fillFa(){
     fa_rate = new std::vector<std::vector<float> >(4,std::vector<float>(4,0));
   }
 
+  // TODO Change way to calculate this:
   Double_t base_integral = nn_output_map->find(Key_t1(eg_key::Background,eg_key::AllData))->second->Integral();
   for(size_t i = 0; i < req_size;++i){ // Loop over ringer requirements
     for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
@@ -1085,7 +1153,7 @@ void D3PDAnalysis::fillEfficiency(){
       for(size_t n = 1; n < req_size;++n){
         for(size_t j = 0; j < var_size;++j){
           Key_t1 key_num(ds[i],alg[m],req[n],var[j]); // Numerator Key
-          Key_t1 key_den(ds[i],var[j]); // Denominator Key
+          Key_t1 key_den(ds[i],var[j],alg[m]); // Denominator Key
           TEfficiency *eff_holder = efficiency_map->find(key_num)->second; // Efficiency histogram
           eff_holder->SetTotalHistogram(*var_dist_map->find(key_den)->second,"f"); // Denominator Distribution histogram
           eff_holder->SetPassedHistogram(*var_dist_map->find(key_num)->second,"f"); // Numerator Distribution histogram
@@ -1100,7 +1168,7 @@ void D3PDAnalysis::fillEfficiency(){
       for(size_t m = 0; m < alg_size;++m){
         for(size_t n = eg_key::Loose; n < req_size;++n){
           Key_t1 key_num(ds[i],alg[m],req[n]); // Numerator Key
-          Key_t1 key_den(ds[i]); // Denominator Key
+          Key_t1 key_den(ds[i],alg[m]); // Denominator Key
           TEfficiency *eff_holder = detailedTruthEff_map->find(key_num)->second; // Efficiency histogram
           eff_holder->SetTotalHistogram(*detailedTruthCounter_map->find(key_den)->second,"f"); // Denominator Distribution histogram
           eff_holder->SetPassedHistogram(*detailedTruthCounter_map->find(key_num)->second,"f"); // Numerator Distribution histogram
@@ -1122,31 +1190,47 @@ void D3PDAnalysis::printDetailedTruthEff(){
   std::cout << "On D3PDAnalysis::printDetailedTruthEff()" << std::endl;
 #endif
 
-  if(doDetailedTruth){
-    std::streamsize oldPres = std::cout.precision(2);
-    std::cout.setf(std::ios::fixed,std::ios::floatfield);
-    for(size_t i = 0; i < nDs;++i){
-      std::cout << "---------- Detailed Truth for " << make_str(ds[i]) << "----------" << std::endl;
-      std::cout << "\t\tOffRinger\tOffEgamma" << std::endl;
-      for(size_t j = 0; j < truth::LastTPart;++j){
-        TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds[i]))->second;
+  std::streamsize oldPres = std::cout.precision(2);
+  std::cout.setf(std::ios::fixed,std::ios::floatfield);
+  for(size_t i = 0; i < nDs;++i){
+    bool doTestOnly = (useTestOnlySgn&&ds[i]==eg_key::SignalFullDs)||
+      (useTestOnlyBkg&&ds[i]==eg_key::Background)&&!doUseRingerTestOnStd;
+    std::cout << "---------- Detailed Truth for " << make_str(ds[i]) << "----------" << std::endl;
+    std::cout << "\t\tOffRinger\tOffEgamma" << std::endl;
+    std::cout.precision(0);
+    if(doTestOnly)
+      std::cout << "Total: \t\t"<< detailedTruthCounter_map->find(Key_t1(ds[i],eg_key::OffRinger))->second->Integral() <<
+        "\t\t" << detailedTruthCounter_map->find(Key_t1(ds[i],eg_key::OffEgamma))->second->Integral() << std::endl;
+    else
+      std::cout << "Total:\t\t\t" << detailedTruthCounter_map->find(Key_t1(ds[i],eg_key::OffRinger))->second->Integral() <<
+        std::endl;
+    std::cout.precision(2);
+    for(size_t j = 0; j < truth::LastTPart;++j){
+      if(doTestOnly){
+        TH1F *counter_holder_ringer = detailedTruthCounter_map->find(Key_t1(ds[i],eg_key::OffRinger))->second;
+        TH1F *counter_holder_std = detailedTruthCounter_map->find(Key_t1(ds[i],eg_key::OffEgamma))->second;
+        Float_t perc_ringer = counter_holder_ringer->GetBinContent(j+1)/counter_holder_ringer->Integral()*100;
+        Float_t perc_std = counter_holder_std->GetBinContent(j+1)/counter_holder_std->Integral()*100;
+        std::cout << make_str(truth::TRUTH_PARTICLE(j)) << "(R:" << perc_ringer << "/S:" << perc_std << ")"<<std::endl;
+      } else {
+        TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds[i],eg_key::OffRinger))->second;
         Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
         std::cout << make_str(truth::TRUTH_PARTICLE(j)) << "(" << perc << ")"<<std::endl;
-        for(size_t n = eg_key::Loose; n < req_size;++n){
-          std::cout<<make_str(req[n]);
-          for(size_t m = 0; m < alg_size;++m){
-            TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds[i],req[n],alg[m]))->second;
-            std::cout<<"\t"<<eff_holder->GetEfficiency(j+1)*100 << "(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
-              << "-" << eff_holder->GetEfficiencyErrorLow(j+1)*100 << ")";
-          }
-          std::cout<<std::endl;
-        }
       }
-      std::cout << "--------------------------" << std::endl;
+      for(size_t n = eg_key::Loose; n < req_size;++n){
+        std::cout<<make_str(req[n]);
+        for(size_t m = 0; m < alg_size;++m){
+          TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds[i],req[n],alg[m]))->second;
+          std::cout<<"\t"<<eff_holder->GetEfficiency(j+1)*100 << "(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
+            << "-" << eff_holder->GetEfficiencyErrorLow(j+1)*100 << ")";
+        }
+        std::cout<<std::endl;
+      }
     }
-    std::cout.unsetf(std::ios::fixed);
-    std::cout.precision(oldPres);
+    std::cout << "--------------------------" << std::endl;
   }
+  std::cout.unsetf(std::ios::fixed);
+  std::cout.precision(oldPres);
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::printDetailedTruthEff()" << std::endl;
@@ -1164,7 +1248,8 @@ void D3PDAnalysis::draw(){
 #endif
 
   // Drawing sequence:
-  drawEnergyDistPlots(); outFile->Flush();
+  drawEnergyDistPlots(et_energy_map); outFile->Flush();
+  if(useTestOnlySgn||useTestOnlyBkg&&!doUseRingerTestOnStd) drawEnergyDistPlots(et_energy_test_map);
   if(doTruth) {drawStableParticlesPlots(); outFile->Flush();}
   if(doDetailedTruth) {drawDetailedTruth(); outFile->Flush();}
   drawNeuralOutputPlots(); outFile->Flush();
@@ -1181,19 +1266,22 @@ void D3PDAnalysis::draw(){
 //========================================================================
 //========================================================================
 //========================================================================
-void D3PDAnalysis::drawEnergyDistPlots(){
+void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
 #if DEBUG >= DEBUG_MSGS
   std::cout << "On D3PDAnalysis::drawEnergyDistPlots()" << std::endl;
 #endif
-  etBaseDir = outFile->mkdir(energyDistDirName.c_str());
+  if(!etBaseDir)
+    etBaseDir = outFile->mkdir(energyDistDirName.c_str());
   etBaseDir->cd();
   gSystem->cd(ana_place.c_str()); // Get back to base analysis dir
-  gSystem->mkdir(energyDistDirName.c_str()); // Create dir
-  gSystem->cd(energyDistDirName.c_str()); // And get inside it
+  if(!gSystem->cd(energyDistDirName.c_str())){
+    gSystem->mkdir(energyDistDirName.c_str()); // Create dir
+    gSystem->cd(energyDistDirName.c_str());
+  }
   std::vector<TH1F*> energyHists; // Use vector just to sort it easier
-  TH1F* histFullSignal = et_energy_map->find(Key_t1(eg_key::SignalFullDs))->second;
-  for(std::map<Key_t1,TH1F*>::iterator i=et_energy_map->begin();
-      i!=et_energy_map->end();++i){
+  TH1F* histFullSignal = theEnergyMap->find(Key_t1(eg_key::SignalFullDs))->second;
+  for(std::map<Key_t1,TH1F*>::iterator i=theEnergyMap->begin();
+      i!=theEnergyMap->end();++i){
     TH1F *hist = i->second;
     if(doTruth)
       switch (i->first.get_ds()){
@@ -1222,11 +1310,14 @@ void D3PDAnalysis::drawEnergyDistPlots(){
   // Now sort histograms by maximum, in decreasing order:
   std::sort(energyHists.begin(),energyHists.end(),histMaxFcn);
   // Create canvas:
-  TCanvas *et_canvas = new TCanvas("Data energy distribution","Data energy distribution");
+  TCanvas et_canvas("Data energy distribution","Data energy distribution");
   // and draw hists:
   TH1F* histClone = static_cast<TH1F*>(energyHists[0]->Clone());
   energyHists[0] = histClone;
-  histClone->SetTitle("Data E_{T} Distribution");
+  if(theEnergyMap==et_energy_test_map)
+    histClone->SetTitle("Ringer Test Data E_{T} Distribution");
+  else
+    histClone->SetTitle("Data E_{T} Distribution");
   histClone->Draw();
   for(std::vector<TH1F*>::iterator i=(energyHists.begin()+1);
       i!=energyHists.end();++i){
@@ -1253,10 +1344,14 @@ void D3PDAnalysis::drawEnergyDistPlots(){
   }
   // Set log scale:
   gPad->SetLogy();
+
+  std::string output = "_data_energy_dist";
+  if(theEnergyMap==et_energy_test_map)
+    output += "_test";
   // And save TCanvas:
-  et_canvas->SaveAs( ( ana_name + "data_energy_dist.gif").c_str());
-  et_canvas->SaveAs( ( ana_name + "data_energy_dist.eps").c_str());
-  et_canvas->Write(  ( ana_name + "data_energy_dist" ).c_str(), TObject::kOverwrite);
+  et_canvas.SaveAs( ( ana_name + output + ".gif").c_str());
+  et_canvas.SaveAs( ( ana_name + output + ".eps").c_str());
+  et_canvas.Write(  ( ana_name + output ).c_str(), TObject::kOverwrite);
   delete histClone;
 
 #if DEBUG >= DEBUG_MSGS
@@ -1366,7 +1461,6 @@ void D3PDAnalysis::drawDetailedTruth(){ // TODO Add on comparison on same plot, 
   for(unsigned i = 0; i < nDs;++i){
     partBaseDir->cd(make_str(ds[i])); //Get inside folder for this dataset
     gSystem->cd(make_str(ds[i])); // And get inside it
-
     // First generate overview Plot:
     TCanvas canvas((ds[i] + std::string("Detailed Particles")).c_str(), 
         (ds[i] + std::string("Detailed Particles")).c_str());
@@ -1378,7 +1472,7 @@ void D3PDAnalysis::drawDetailedTruth(){ // TODO Add on comparison on same plot, 
       canvas.cd(j+1);
       THStack *stack = new THStack(make_str(alg[j]),make_str(alg[j]));
       stackVec.push_back(stack);
-      stack->Add(detailedTruthCounter_map->find(Key_t1(ds[i]))->second);
+      stack->Add(detailedTruthCounter_map->find(Key_t1(ds[i],alg[j]))->second);
       for(unsigned k = 1; k < req_size;++k){
         stack->Add(detailedTruthCounter_map->find(Key_t1(ds[i],alg[j],req[k]))->second);
       }
@@ -1390,7 +1484,7 @@ void D3PDAnalysis::drawDetailedTruth(){ // TODO Add on comparison on same plot, 
       legend.AddEntry(detailedTruthCounter_map->find(Key_t1(ds[i],alg[0],req[k]))->second
         ,(std::string("Passed ") + req[k]).c_str(),"f");
     }
-    legend.AddEntry(detailedTruthCounter_map->find(Key_t1(ds[i]))->second,"All Data","f");
+    legend.AddEntry(detailedTruthCounter_map->find(Key_t1(ds[i],alg[0]))->second,"All Data","f");
     canvas.cd();
     legend.SetTextSize(.025);
     legend.Draw();
@@ -1895,13 +1989,18 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
     ds = eg_key::Background;
   }
 
+  bool doTestOnly = (useTestOnlySgn&&ds==eg_key::SignalFullDs)||
+    (useTestOnlyBkg&&ds==eg_key::Background)&&!doUseRingerTestOnStd;
   std::ofstream outFile( (ana_name + "_" + outputName).c_str()); // output
-  outFile.precision(2); // std::streamsize oldPres = 
+  outFile.precision(0);
   outFile.setf(std::ios::fixed,std::ios::floatfield);
-  outFile << "<table border=\"1\" align=\"center\" style=\"text-align:center\">" << std::endl;
+  outFile << "<table border=\"1\" align=\"center\" valign=\"middle\" style=\"text-align:center\">" << std::endl;
   outFile << "<th rowspan=\"2\" size=\"4\"> Particles from " << ds_name  << " Dataset </br> " <<
-    " (Data Percentage) [Efficiency Rates (\%)] </br> </th><th colspan=\"3\"><h3>Offline Ringer" << 
-    "</h3></th><th colspan=\"3\"><h3>Offline Standard E/&gamma;</h3></th>" << std::endl;
+    " (Data Percentage) [Efficiency Rates (\%)] </br> </th><th colspan=\"3\" size=\"4\">Offline Ringer</br>(Total:" <<
+    detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger))->second->Integral() << ")" 
+    << "</th><th colspan=\"3\" size=\"4\">Offline Standard E/&gamma;</br>(Total:" <<
+    detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffEgamma))->second->Integral() << ")" 
+    "</th>" << std::endl;
   outFile << "<tr>" << std::endl;
   outFile << "<td width=\"75\">Loose</td>" << std::endl;
   outFile << "<td width=\"75\">Medium</td>" << std::endl;
@@ -1910,14 +2009,28 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
   outFile << "<td width=\"75\">Medium</td>" << std::endl;
   outFile << "<td width=\"75\">Tight</td>" << std::endl;
   outFile << "</tr>" << std::endl;
+  outFile.precision(2); // std::streamsize oldPres = 
   for(size_t j = 0; j < truth::LastTPart;++j){
-    TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds))->second;
-    Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
     outFile << "<tr>" << std::endl;
-    if(!j)
-      outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
-    else
-      outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
+    if(doTestOnly){
+      TH1F *counter_holder_ringer = detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger))->second;
+      TH1F *counter_holder_std = detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffEgamma))->second;
+      Float_t perc_ringer = counter_holder_ringer->GetBinContent(j+1)/counter_holder_ringer->Integral()*100;
+      Float_t perc_std = counter_holder_std->GetBinContent(j+1)/counter_holder_std->Integral()*100;
+      if(!j)
+        outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (R:" << perc_ringer << "/S:" << perc_std 
+          << "\%) [DET]</td>" << std::endl;
+      else
+        outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (R:" << perc_ringer << "/S:" << perc_std 
+          << "\%) [FA]</td>" << std::endl;
+    } else {
+      TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger))->second;
+      Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
+      if(!j)
+        outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
+      else
+        outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
+    }
     for(size_t k = 0; k < alg_size;++k){
       for(size_t m = eg_key::Loose; m < req_size;++m){
         TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds,req[m],alg[k]))->second;

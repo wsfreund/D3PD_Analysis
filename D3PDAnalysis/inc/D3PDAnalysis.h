@@ -135,6 +135,8 @@ private:
   void fillHistsFor(egammaD3PD *d3pd);
   void fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
       const Float_t el_nnOutput);
+  void fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
+      const Float_t el_nnOutput, const bool isTest);
 
   // Clear Det and Fa:
   void clearDet();
@@ -146,7 +148,7 @@ private:
   void fillFixedThres();
 
   // Drawing specific hists methods:
-  void drawEnergyDistPlots();
+  void drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap);
   void drawStableParticlesPlots();
   void drawDetailedTruth();
   void drawNeuralOutputPlots();
@@ -182,13 +184,17 @@ private:
   bool doTexOutput; // do Print Tex Ouput
   bool doROC; // do Detailed Truth Analysis (check efficiency for pions, kaons, electrons and so on)
 
-  bool useTest;
+  bool doUseRingerTestOnStd;
+
+  bool useTestOnlySgn;
+  bool useTestOnlyBkg;
   
   // High resolution binnage histogram for roc:
   unsigned hgres;
 
   // Hist maps:
   std::map<Key_t1,TH1F*> *et_energy_map;
+  std::map<Key_t1,TH1F*> *et_energy_test_map;
   std::map<Key_t1,TH1F*> *nn_output_map;
   std::map<Key_t1,TH1F*> *particles_map;
   std::map<Key_t1,TH1F*> *var_dist_map;
@@ -302,8 +308,10 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   doDetailedTruth(doDetailedTruth), doHtmlOutput(doHtmlOutput),
   doTexOutput(doTexOutput), doROC(doROC),
   // Members not configurable by user using constructor:
+  doUseRingerTestOnStd(false),  useTestOnlySgn(false), useTestOnlyBkg(false), 
   hgres(100000),
-  et_energy_map(0),nn_output_map(0),particles_map(0),
+  et_energy_map(0),et_energy_test_map(0),
+  nn_output_map(0),particles_map(0),
   var_dist_map(0),efficiency_map(0),corr_map(0),
   detailedTruthCounter_map(0),detailedTruthEff_map(0),outFile(0),
   energyDistDirName(std::string("EnergyDistribution")), 
@@ -456,6 +464,10 @@ D3PDAnalysis::~D3PDAnalysis(){
   if(et_energy_map){
     clearHistMap(et_energy_map);
     delete et_energy_map;
+  }
+  if(et_energy_test_map){
+    clearHistMap(et_energy_test_map);
+    delete et_energy_test_map;
   }
   if(nn_output_map){ 
     clearHistMap(nn_output_map);

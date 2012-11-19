@@ -19,6 +19,13 @@ for k=1:length(analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters)-1
   fprintf(pyFile,'%d,',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(k));
 end
 fprintf(pyFile,'%d]\n',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(end));
-fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',1); % TODO Change it to read an variable of analysis
-fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',11); % TODO Change it to read an variable of analysis
-fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',23); % TODO Change it to read an variable of analysis
+if(strcmp(analysis.opts.trainWrt,'truth')
+  fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',1);
+  fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',analysis.opts.sgnTrnPdgIdType); 
+  fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.sgnTrnMotherPdgIdType); 
+elseif
+  fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',0);
+  fprintf(pyFile,'self.sgnTrnIsEM_mask=%d\n',analysis.opts.sgnTrnIsEM_mask); 
+  fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.bkgTrnIsEM_mask); 
+end
+fprintf(pyFile,'self.normalization=%s\n',analysis.opts.norm); 

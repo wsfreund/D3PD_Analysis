@@ -495,170 +495,173 @@ Neural* readNN(opts &setOpts){
     throw BAD_NN_FILE;
   }
 
-  if(setOpts.doUseTrnInfoOnNNFile && setOpts.doTestOnly){
+  if(setOpts.doUseTrnInfoOnNNFile){
 #ifdef DEBUG
     std::cout << "Determing sgnCluster_size." << std::endl;
 #endif
-    netFile.ignore(10000,'\n');
-    netFile.getline(firstInput,200,'=');
-    if(!strcmp(firstInput,"self.sgnCluster_size")){
-      char cluster_size[100];
-      netFile.getline(cluster_size,100,'\n');
-      setOpts.sgnCluster_size = atoi(cluster_size);
-    } else {
-      std::cerr << "Reading NeuralNet file problems on sgnCluster_size, got string = " << firstInput << std::endl;
-      throw BAD_NN_FILE;
-    }
+    if(setOpts.doTestOnly){
+      netFile.ignore(10000,'\n');
+      netFile.getline(firstInput,200,'=');
+      if(!strcmp(firstInput,"self.sgnCluster_size")){
+        char cluster_size[100];
+        netFile.getline(cluster_size,100,'\n');
+        setOpts.sgnCluster_size = atoi(cluster_size);
+      } else {
+        std::cerr << "Reading NeuralNet file problems on sgnCluster_size, got string = " << firstInput << std::endl;
+        throw BAD_NN_FILE;
+      }
 
 #ifdef DEBUG
-    std::cout << "Determing bkgCluster_size." << std::endl;
+      std::cout << "Determing bkgCluster_size." << std::endl;
 #endif
 
-    netFile.getline(firstInput,200,'=');
-    if(!strcmp(firstInput,"self.bkgCluster_size")){
-      char cluster_size[100];
-      netFile.getline(cluster_size,100,'\n');
-      setOpts.bkgCluster_size = atoi(cluster_size);
-    } else {
-      std::cerr << "Reading NeuralNet file problems on bkgCluster_size, got string = " << firstInput << std::endl;
-      throw BAD_NN_FILE;
-    }
+      netFile.getline(firstInput,200,'=');
+      if(!strcmp(firstInput,"self.bkgCluster_size")){
+        char cluster_size[100];
+        netFile.getline(cluster_size,100,'\n');
+        setOpts.bkgCluster_size = atoi(cluster_size);
+      } else {
+        std::cerr << "Reading NeuralNet file problems on bkgCluster_size, got string = " << firstInput << std::endl;
+        throw BAD_NN_FILE;
+      }
 
 #ifdef DEBUG
-    std::cout << "Determing sgn_tst_clusters." << std::endl;
+      std::cout << "Determing sgn_tst_clusters." << std::endl;
 #endif
-    netFile.getline(firstInput,200,'=');
-    if(!strcmp(firstInput,"self.sgn_tst_clusters")){
-      netFile.ignore();
-      char sgn_tst_clusters[100], *dummy;
-      for(;;){
-        int counter = 0;
-        while ( (netFile.peek()!=',') && (netFile.peek()!=']') && netFile.peek()!=EOF){
-          netFile.seekg(1,std::ios::cur);
-          ++counter; 
+      netFile.getline(firstInput,200,'=');
+      if(!strcmp(firstInput,"self.sgn_tst_clusters")){
+        netFile.ignore();
+        char sgn_tst_clusters[100], *dummy;
+        for(;;){
+          int counter = 0;
+          while ( (netFile.peek()!=',') && (netFile.peek()!=']') && netFile.peek()!=EOF){
+            netFile.seekg(1,std::ios::cur);
+            ++counter; 
+          }
+          if(netFile.peek()==','){
+            netFile.seekg(-counter,std::ios::cur);
+            netFile.getline(sgn_tst_clusters,100,',');
+            setOpts.testSgnClusters.push_back(strtod(sgn_tst_clusters, &dummy));
+          } else if (netFile.peek()==']') {
+            netFile.seekg(-counter,std::ios::cur);
+            netFile.getline(sgn_tst_clusters,100,']');
+            setOpts.testSgnClusters.push_back(strtod(sgn_tst_clusters, &dummy));
+            break;
+          } else {
+            std::cerr << "Reading NeuralNet file problems on sgn_tst_clusters" << std::endl;
+            throw BAD_NN_FILE;
+          }
         }
-        if(netFile.peek()==','){
-          netFile.seekg(-counter,std::ios::cur);
-          netFile.getline(sgn_tst_clusters,100,',');
-          setOpts.testSgnClusters.push_back(strtod(sgn_tst_clusters, &dummy));
-        } else if (netFile.peek()==']') {
-          netFile.seekg(-counter,std::ios::cur);
-          netFile.getline(sgn_tst_clusters,100,']');
-          setOpts.testSgnClusters.push_back(strtod(sgn_tst_clusters, &dummy));
-          break;
+        std::sort(setOpts.testSgnClusters.begin(),setOpts.testSgnClusters.end());
+      } else {
+        std::cerr << "Reading NeuralNet file problems on sgn_tst_clusters, got string = " << firstInput << std::endl;
+        throw BAD_NN_FILE;
+      }
+      netFile.ignore(10000,'\n');
+
+#ifdef DEBUG
+      std::cout << "Determing bkg_tst_clusters." << std::endl;
+#endif
+      netFile.getline(firstInput,200,'=');
+      if(!strcmp(firstInput,"self.bkg_tst_clusters")){
+        netFile.ignore();
+        char bkg_tst_clusters[100], *dummy;
+        for(;;){
+          int counter = 0;
+          while ( (netFile.peek()!=',') && (netFile.peek()!=']') && netFile.peek()!=EOF){
+            netFile.seekg(1,std::ios::cur);
+            ++counter; 
+          }
+          if(netFile.peek()==','){
+            netFile.seekg(-counter,std::ios::cur);
+            netFile.getline(bkg_tst_clusters,100,',');
+            setOpts.testBkgClusters.push_back(strtod(bkg_tst_clusters, &dummy));
+          } else if (netFile.peek()==']') {
+            netFile.seekg(-counter,std::ios::cur);
+            netFile.getline(bkg_tst_clusters,100,']');
+            setOpts.testBkgClusters.push_back(strtod(bkg_tst_clusters, &dummy));
+            break;
+          } else {
+            std::cerr << "Reading NeuralNet file problems on bkg_tst_clusters" << std::endl;
+            throw BAD_NN_FILE;
+          }
+        }
+        std::sort(setOpts.testBkgClusters.begin(),setOpts.testBkgClusters.end());
+      } else {
+        std::cerr << "Reading NeuralNet file problems on bkg_tst_clusters, got string = " << firstInput << std::endl;
+        throw BAD_NN_FILE;
+      }
+      netFile.ignore(10000,'\n');
+
+#ifdef DEBUG
+      std::cout << "Determing ringerNNTrnWrt." << std::endl;
+#endif
+      netFile.getline(firstInput,200,'=');
+      if(!strcmp(firstInput,"self.ringerNNTrnWrt")){
+        char ringerNNTrnWrt[100];
+        netFile.getline(ringerNNTrnWrt,100,'\n');
+        setOpts.ringerNNTrnWrt = atoi(ringerNNTrnWrt);
+      } else {
+        std::cerr << "Reading NeuralNet file problems on ringerNNTrnWrt, got string = " << firstInput << std::endl;
+        throw BAD_NN_FILE;
+      }
+
+      if(setOpts.ringerNNTrnWrt==Truth){
+#ifdef DEBUG
+        std::cout << "Determing sgnTrnPdgIdType." << std::endl;
+#endif
+        netFile.getline(firstInput,200,'=');
+        if(!strcmp(firstInput,"self.sgnTrnPdgIdType")){
+          char sgnTrnPdgIdType[100];
+          netFile.getline(sgnTrnPdgIdType,100,'\n');
+          setOpts.sgnTrnPdgIdType = atoi(sgnTrnPdgIdType);
         } else {
-          std::cerr << "Reading NeuralNet file problems on sgn_tst_clusters" << std::endl;
-          throw BAD_NN_FILE;
+          std::cerr << "Using default sgnTrnPdgIdType." << std::endl;
         }
-      }
-      std::sort(setOpts.testSgnClusters.begin(),setOpts.testSgnClusters.end());
-    } else {
-      std::cerr << "Reading NeuralNet file problems on sgn_tst_clusters, got string = " << firstInput << std::endl;
-      throw BAD_NN_FILE;
-    }
-    netFile.ignore(10000,'\n');
 
 #ifdef DEBUG
-    std::cout << "Determing bkg_tst_clusters." << std::endl;
+        std::cout << "Determing sgnTrnMotherPdgIdType." << std::endl;
 #endif
-    netFile.getline(firstInput,200,'=');
-    if(!strcmp(firstInput,"self.bkg_tst_clusters")){
-      netFile.ignore();
-      char bkg_tst_clusters[100], *dummy;
-      for(;;){
-        int counter = 0;
-        while ( (netFile.peek()!=',') && (netFile.peek()!=']') && netFile.peek()!=EOF){
-          netFile.seekg(1,std::ios::cur);
-          ++counter; 
-        }
-        if(netFile.peek()==','){
-          netFile.seekg(-counter,std::ios::cur);
-          netFile.getline(bkg_tst_clusters,100,',');
-          setOpts.testBkgClusters.push_back(strtod(bkg_tst_clusters, &dummy));
-        } else if (netFile.peek()==']') {
-          netFile.seekg(-counter,std::ios::cur);
-          netFile.getline(bkg_tst_clusters,100,']');
-          setOpts.testBkgClusters.push_back(strtod(bkg_tst_clusters, &dummy));
-          break;
+        netFile.getline(firstInput,200,'=');
+        if(!strcmp(firstInput,"self.sgnTrnMotherPdgIdType")){
+          char sgnTrnMotherPdgIdType[100];
+          netFile.getline(sgnTrnMotherPdgIdType,100,'\n');
+          setOpts.sgnTrnMotherPdgIdType = atoi(sgnTrnMotherPdgIdType);
         } else {
-          std::cerr << "Reading NeuralNet file problems on bkg_tst_clusters" << std::endl;
-          throw BAD_NN_FILE;
+          std::cerr << "Using default sgnTrnMotherPdgIdType." << std::endl;
         }
+
+      }else if(setOpts.ringerNNTrnWrt==Standard_Eg){// TODO Else set logic to StandardEg
+
+#ifdef DEBUG
+        std::cout << "Determing sgnTrnIsEM_mask." << std::endl;
+#endif
+        netFile.getline(firstInput,200,'=');
+        if(!strcmp(firstInput,"self.sgnTrnIsEM_mask")){
+          char sgnTrnIsEM_mask[100];
+          netFile.getline(sgnTrnIsEM_mask,100,'\n');
+          setOpts.sgnTrnIsEM_mask = atoi(sgnTrnIsEM_mask);
+        } else {
+          std::cerr << "Using default sgnTrnPdgIdType." << std::endl;
+        }
+
+#ifdef DEBUG
+        std::cout << "Determing bkgTrnIsEM_mask." << std::endl;
+#endif
+        netFile.getline(firstInput,200,'=');
+        if(!strcmp(firstInput,"self.bkgTrnIsEM_mask")){
+          char bkgTrnIsEM_mask[100];
+          netFile.getline(bkgTrnIsEM_mask,100,'\n');
+          setOpts.bkgTrnIsEM_mask = atoi(bkgTrnIsEM_mask);
+        } else {
+          std::cerr << "Using default bkgTrnIsEM_mask." << std::endl;
+        }
+      }else{
+        std::cerr << "Not possible to train with respect to " << setOpts.ringerNNTrnWrt << std::endl;
+        throw BAD_NN_FILE;
       }
-      std::sort(setOpts.testBkgClusters.begin(),setOpts.testBkgClusters.end());
-    } else {
-      std::cerr << "Reading NeuralNet file problems on bkg_tst_clusters, got string = " << firstInput << std::endl;
-      throw BAD_NN_FILE;
     }
-    netFile.ignore(10000,'\n');
-
-#ifdef DEBUG
-    std::cout << "Determing ringerNNTrnWrt." << std::endl;
-#endif
-    netFile.getline(firstInput,200,'=');
-    if(!strcmp(firstInput,"self.ringerNNTrnWrt")){
-      char ringerNNTrnWrt[100];
-      netFile.getline(ringerNNTrnWrt,100,'\n');
-      setOpts.ringerNNTrnWrt = atoi(ringerNNTrnWrt);
-    } else {
-      std::cerr << "Reading NeuralNet file problems on ringerNNTrnWrt, got string = " << firstInput << std::endl;
-      throw BAD_NN_FILE;
-    }
-
-    if(setOpts.ringerNNTrnWrt==Truth){
-#ifdef DEBUG
-      std::cout << "Determing sgnTrnPdgIdType." << std::endl;
-#endif
-      netFile.getline(firstInput,200,'=');
-      if(!strcmp(firstInput,"self.sgnTrnPdgIdType")){
-        char sgnTrnPdgIdType[100];
-        netFile.getline(sgnTrnPdgIdType,100,'\n');
-        setOpts.sgnTrnPdgIdType = atoi(sgnTrnPdgIdType);
-      } else {
-        std::cerr << "Using default sgnTrnPdgIdType." << std::endl;
-      }
-
-#ifdef DEBUG
-      std::cout << "Determing sgnTrnMotherPdgIdType." << std::endl;
-#endif
-      netFile.getline(firstInput,200,'=');
-      if(!strcmp(firstInput,"self.sgnTrnMotherPdgIdType")){
-        char sgnTrnMotherPdgIdType[100];
-        netFile.getline(sgnTrnMotherPdgIdType,100,'\n');
-        setOpts.sgnTrnMotherPdgIdType = atoi(sgnTrnMotherPdgIdType);
-      } else {
-        std::cerr << "Using default sgnTrnMotherPdgIdType." << std::endl;
-      }
-
-    }else if(setOpts.ringerNNTrnWrt==Standard_Eg){// TODO Else set logic to StandardEg
-
-#ifdef DEBUG
-      std::cout << "Determing sgnTrnIsEM_mask." << std::endl;
-#endif
-      netFile.getline(firstInput,200,'=');
-      if(!strcmp(firstInput,"self.sgnTrnIsEM_mask")){
-        char sgnTrnIsEM_mask[100];
-        netFile.getline(sgnTrnIsEM_mask,100,'\n');
-        setOpts.sgnTrnIsEM_mask = atoi(sgnTrnIsEM_mask);
-      } else {
-        std::cerr << "Using default sgnTrnPdgIdType." << std::endl;
-      }
-
-#ifdef DEBUG
-      std::cout << "Determing bkgTrnIsEM_mask." << std::endl;
-#endif
-      netFile.getline(firstInput,200,'=');
-      if(!strcmp(firstInput,"self.bkgTrnIsEM_mask")){
-        char bkgTrnIsEM_mask[100];
-        netFile.getline(bkgTrnIsEM_mask,100,'\n');
-        setOpts.bkgTrnIsEM_mask = atoi(bkgTrnIsEM_mask);
-      } else {
-        std::cerr << "Using default bkgTrnIsEM_mask." << std::endl;
-      }
-    }else{
-      std::cerr << "Not possible to train with respect to " << setOpts.ringerNNTrnWrt << std::endl;
-      throw BAD_NN_FILE;
-    }
+    // TODO Adicionar leitura da normalizacao aqui:
   }
 
 

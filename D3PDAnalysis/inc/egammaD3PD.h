@@ -34,6 +34,7 @@ public :
 
    // Declaration of leaf types
    Int_t           el_n;
+   Int_t           el_n_test;
    std::vector<float>   *el_E;
    std::vector<float>   *el_Et;
    std::vector<float>   *el_pt;
@@ -45,6 +46,7 @@ public :
    std::vector<float>   *el_pz;
    std::vector<float>   *el_charge;
    std::vector<int>     *el_author;
+   std::vector<unsigned int> *el_is_testCluster;
    std::vector<unsigned int> *el_isEM;
    std::vector<unsigned int> *el_isEMLoose;
    std::vector<unsigned int> *el_isEMMedium;
@@ -796,6 +798,7 @@ public :
 
    // List of branches
    TBranch        *b_el_n;   //!
+   TBranch        *b_el_n_test;   //!
    TBranch        *b_el_E;   //!
    TBranch        *b_el_Et;   //!
    TBranch        *b_el_pt;   //!
@@ -807,6 +810,7 @@ public :
    TBranch        *b_el_pz;   //!
    TBranch        *b_el_charge;   //!
    TBranch        *b_el_author;   //!
+   TBranch        *b_el_is_testCluster;   //!
    TBranch        *b_el_isEM;   //!
    TBranch        *b_el_isEMLoose;   //!
    TBranch        *b_el_isEMMedium;   //!
@@ -1634,6 +1638,7 @@ void egammaD3PD::Init(TTree *tree)
    el_pz = 0;
    el_charge = 0;
    el_author = 0;
+   el_is_testCluster = 0;
    el_isEM = 0;
    el_isEMLoose = 0;
    el_isEMMedium = 0;
@@ -2386,6 +2391,8 @@ void egammaD3PD::Init(TTree *tree)
    fChain->SetMakeClass(1);
 
    fChain->SetBranchAddress("el_n", &el_n, &b_el_n);
+   if(fChain->FindBranch("el_n_test"))
+     fChain->SetBranchAddress("el_n_test", &el_n_test, &b_el_n_test);
    fChain->SetBranchAddress("el_E", &el_E, &b_el_E);
    fChain->SetBranchAddress("el_Et", &el_Et, &b_el_Et);
    fChain->SetBranchAddress("el_pt", &el_pt, &b_el_pt);
@@ -2397,6 +2404,8 @@ void egammaD3PD::Init(TTree *tree)
    fChain->SetBranchAddress("el_pz", &el_pz, &b_el_pz);
    fChain->SetBranchAddress("el_charge", &el_charge, &b_el_charge);
    fChain->SetBranchAddress("el_author", &el_author, &b_el_author);
+   if(fChain->FindBranch("el_is_testCluster"))
+     fChain->SetBranchAddress("el_is_testCluster", &el_is_testCluster, &b_el_is_testCluster);
    fChain->SetBranchAddress("el_isEM", &el_isEM, &b_el_isEM);
    fChain->SetBranchAddress("el_isEMLoose", &el_isEMLoose, &b_el_isEMLoose);
    fChain->SetBranchAddress("el_isEMMedium", &el_isEMMedium, &b_el_isEMMedium);
