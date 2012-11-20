@@ -12,6 +12,7 @@ out_dir_name := out
 out_inc_dir_name := include
 lib_dir_name := lib
 matlab_dir_name := matlab
+matlab_out_dir_name := matlab
 bin_dir_name := bin
 
 INCFLAGS += -I$(out_inc_dir_name)
@@ -136,13 +137,14 @@ libraries    :=
 sources      :=
 objects      :=
 includes     :=
+matlab_files :=
 
 all:
 
 include $(addsuffix /module.mk,$(modules))
 
 .PHONY: all
-all: directories includes $(programs) $(libraries)
+all: directories includes $(programs) $(libraries) matlab
 
 # Special rule for GoodRunList make
 ifdef GRL_DIR
@@ -165,6 +167,9 @@ libraries: $(libraries) includes directories
 includes: $(includes)
 	@cp $^ $(out_inc_dir_name)
 
+.PHONY: matlab 
+matlab: $(matlab_files)
+	@cp $^ $(matlab_out_dir_name)
 
 .PHONY: directories
 directories:

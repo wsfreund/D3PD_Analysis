@@ -24,6 +24,7 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
 
   MATD3PD_DIRS     := $(MATD3PD_DIRBASE)/$(src_dir_name)
   MATD3PD_DIRI     := $(MATD3PD_DIRBASE)/$(include_dir_name)
+  MATD3PD_DIRM     := $(MATD3PD_DIRBASE)/$(matlab_dir_name)
 
   MATD3PD_DL_DEP := $(CORE_DL)
   MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lCint -lTree -lRIO
@@ -41,15 +42,17 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
     MATD3PD_DL_DEP += $(GRL_LIB)
   endif
 
-  MATD3PD_DL := $(matlab_dir_name)/$(MATD3PD_LIBNAME).$(MEXEXT)
+  MATD3PD_DL := $(matlab_out_dir_name)/$(MATD3PD_LIBNAME).$(MEXEXT)
   MATD3PD_DS := $(wildcard $(MATD3PD_DIRS)/*.c[xp][xp]) $(wildcard $(MATD3PD_DIRS)/*.C)
   MATD3PD_DO := $(call source_to_object,$(MATD3PD_DS),$(MATD3PD_DIRS))
   MATD3PD_DI := $(wildcard $(MATD3PD_DIRI)/*.h)
+  MATD3PD_DM := $(filter %.m,$(wildcard $(MATD3PD_DIRM)/*))
 
-  objects   += $(MATD3PD_DO)
-  includes  += $(MATD3PD_DI)
-  sources   += $(MATD3PD_DS)
-  libraries += $(MATD3PD_DL)
+  objects      += $(MATD3PD_DO)
+  includes     += $(MATD3PD_DI)
+  sources      += $(MATD3PD_DS)
+  libraries    += $(MATD3PD_DL)
+  matlab_files += $(MATD3PD_DM) 
 
   $(out_dir_name)/load_d3pd_dict.cpp: $(MATD3PD_DIRBASE)/$(include_dir_name)/myLinkDef.h
 		@echo "**"
@@ -58,13 +61,11 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
 		rootcint -f $@ -c $<
 
 
-  $(MATD3PD_DL): $(MATD3PD_DS) $(out_dir_name)/load_d3pd_dict.cpp $(MATD3PD_DL_DEP) | CPHELPINFO
+  $(MATD3PD_DL): $(MATD3PD_DS) $(out_dir_name)/load_d3pd_dict.cpp $(MATD3PD_DL_DEP)
 		@echo "**"
 		@echo "** Creating matlab mex $@"
 		@echo "**"
 		$(MEX) -cxx $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 
-  CPHELPINFO:
-		@cp $(filter %.m,$(wildcard $(MATD3PD_DIRI)/*)) $(matlab_dir_name)
 
 endif
