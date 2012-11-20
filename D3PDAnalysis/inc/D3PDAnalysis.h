@@ -67,8 +67,6 @@ public:
   TDirectory *get_corrBaseDir() {return corrBaseDir;}
 
   // Get efficiencies:
-  const std::vector<std::vector<float> > * get_det_rate() const {return det_rate;} 
-  const std::vector<std::vector<float> > *get_fa_rate() const {return fa_rate;} 
   const std::vector<float> *get_nn_det_for_fixed_std_fa_rate() const {return nn_det_for_fixed_std_fa_rate;}  
   const std::vector<float> *get_nn_thres_for_fixed_std_fa_rate() const {return nn_thres_for_fixed_std_det_rate;}  
   const std::vector<float> *get_nn_fa_for_fixed_std_det_rate() const {return nn_fa_for_fixed_std_det_rate;}  
@@ -117,6 +115,7 @@ private:
   // Methods:
 
   // Create histograms methods:
+  void setOverallEff();
   void setEtHists();
   void setParticlesHists();
   void setNNOutHits();
@@ -126,8 +125,6 @@ private:
   void setDetailedTruthEff();
 
   // Filling auxiliary methods:
-  void fillDet();
-  void fillFa();
   void fillRoc();
   void fillEfficiency();
   void fillParticlesTruthEff();
@@ -137,10 +134,6 @@ private:
       const Float_t el_nnOutput);
   void fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE particle, const eg_key::DATASET ds, const unsigned el_isEM, 
       const Float_t el_nnOutput, const bool isTest);
-
-  // Clear Det and Fa:
-  void clearDet();
-  void clearFa();
 
   // Force nn thresholds to same false alarm as std tight, detection as std loose
   // and medium to best sp.
@@ -193,15 +186,16 @@ private:
   unsigned hgres;
 
   // Hist maps:
-  std::map<Key_t1,TH1F*> *et_energy_map;
-  std::map<Key_t1,TH1F*> *et_energy_test_map;
-  std::map<Key_t1,TH1F*> *nn_output_map;
-  std::map<Key_t1,TH1F*> *particles_map;
-  std::map<Key_t1,TH1F*> *var_dist_map;
-  std::map<Key_t1,TEfficiency*> *efficiency_map;
-  std::map<Key_t1,TH2F*> *corr_map;
-  std::map<Key_t1,TH1F*> *detailedTruthCounter_map;
-  std::map<Key_t1,TEfficiency*> *detailedTruthEff_map;
+  std::map<Key_t1,TH1F*> *et_energy_map; // Contains Tranverse Energy Distribution
+  std::map<Key_t1,TH1F*> *et_energy_test_map; // Contains Tranverse Energy Distribution for test data
+  std::map<Key_t1,TH1F*> *nn_output_map; // Contains neural network output
+  std::map<Key_t1,TH1F*> *particles_map; // Contains truth particles and the algorithm outputs for them
+  std::map<Key_t1,TH1F*> *var_dist_map; // Contains the clusters output over eta, et, phi
+  std::map<Key_t1,TEfficiency*> *efficiency_map; // Efficiency over eta, et, phi
+  std::map<Key_t1,TEfficiency*> *global_eff; // Global efficiencies
+  std::map<Key_t1,TH2F*> *corr_map; // Neural network output versus standard variables
+  std::map<Key_t1,TH1F*> *detailedTruthCounter_map; // Similar to particles map, but to filtered pdgId
+  std::map<Key_t1,TEfficiency*> *detailedTruthEff_map; // Efficiency to filtered pdgIds
 
   // Output root file:
   TFile *outFile;
@@ -262,8 +256,6 @@ private:
   Int_t signalMotherPdgId; // Z boson default
 
   //Save some data:
-  std::vector<std::vector<float> > *det_rate; // Rows correspond to Ringer, columns to standard eg.
-  std::vector<std::vector<float> > *fa_rate;  // Rows correspond to Ringer, columns to standard eg.
   std::vector<float> *nn_det_for_fixed_std_fa_rate;  
   std::vector<float> *nn_thres_for_fixed_std_fa_rate;  
   std::vector<float> *nn_fa_for_fixed_std_det_rate;  
@@ -323,7 +315,6 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   var_special(var_size), alg_special(alg_size), 
   var_units(var_size), stdeg_req(req_size), ring_req(req_size),
   signalPdgId(truth::Electron_type), signalMotherPdgId(truth::Z_type), 
-  det_rate(0), fa_rate(0), 
   nn_det_for_fixed_std_fa_rate(0), nn_thres_for_fixed_std_fa_rate(0),
   nn_fa_for_fixed_std_det_rate(0), nn_thres_for_fixed_std_det_rate(0), 
   rocDetVec(0), rocFaVec(0), rocSPVec(0)
@@ -450,8 +441,6 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
 
 inline
 D3PDAnalysis::~D3PDAnalysis(){
-  if(det_rate) delete det_rate;
-  if(fa_rate)  delete fa_rate;
   if(nn_det_for_fixed_std_fa_rate) delete nn_det_for_fixed_std_fa_rate;   
   if(nn_thres_for_fixed_std_fa_rate) delete nn_thres_for_fixed_std_fa_rate;   
   if(nn_fa_for_fixed_std_det_rate) delete nn_fa_for_fixed_std_det_rate;   

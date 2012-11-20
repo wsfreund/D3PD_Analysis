@@ -19,6 +19,7 @@ void D3PDAnalysis::init(){
   if(bkg->fChain->FindBranch("el_n_test"))
     useTestOnlyBkg = true;
 
+  setOverallEff();
   setEtHists();
   if(doTruth) setParticlesHists();
   setNNOutHits();
@@ -45,16 +46,29 @@ void D3PDAnalysis::printMaps() const{
       std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
     }
   }
-  if(useTestOnlySgn||useTestOnlyBkg&&!doUseRingerTestOnStd){
-    if(et_energy_test_map){
-      std::cout << "---------------------" << std::endl;
-      std::cout << "Energy Test Map Keys: " << et_energy_test_map->size() << std::endl;
-      for(std::map<Key_t1,TH1F*>::iterator i=et_energy_test_map->begin();
-          i!=et_energy_test_map->end();++i){
-        std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
-      }
+  if(et_energy_test_map){
+    std::cout << "---------------------" << std::endl;
+    std::cout << "Energy Test Map Keys: " << et_energy_test_map->size() << std::endl;
+    for(std::map<Key_t1,TH1F*>::iterator i=et_energy_test_map->begin();
+        i!=et_energy_test_map->end();++i){
+      std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
     }
   }
+
+  if(global_eff){
+    std::cout << "---------------------" << std::endl;
+    std::cout << "Global Efficiency Map Keys: " << global_eff->size() << std::endl;
+    for(std::map<Key_t1,TEfficiency*>::iterator i=global_eff->begin();
+        i!=global_eff->end();++i){
+      std::cout << "Integral(Hist) = "<< i->second->GetPassedHistogram()->Integral() << "/" << 
+        i->second->GetTotalHistogram()->Integral() << "\t" <<  i->first << std::endl;
+      std::cout << "--------- Passed: " << std::endl;
+      i->second->GetPassedHistogram()->Print("all");
+      std::cout << "--------- Total: " << std::endl;
+      i->second->GetTotalHistogram()->Print("all");
+    }
+  }
+
   if(particles_map){
     std::cout << "---------------------" << std::endl;
     std::cout << "Particles Map Keys: " << particles_map->size() << std::endl;
@@ -117,6 +131,28 @@ void D3PDAnalysis::printMaps() const{
         i!=detailedTruthEff_map->end();++i){
       std::cout << "Integral(Hist) = "<< i->second->GetPassedHistogram()->Integral() << "/" << 
         i->second->GetTotalHistogram()->Integral() << "\t" <<  i->first << std::endl;
+    }
+  }
+
+}
+
+
+//========================================================================
+//========================================================================
+//========================================================================
+void D3PDAnalysis::setOverallEff(){
+
+  global_eff = new std::map<Key_t1,TEfficiency*>();
+
+  // Algorithms Overall Eficiency:
+  for(size_t i = 0; i < ds_size;++i){
+    for(size_t m = 0; m < alg_size;++m){
+      global_eff->insert(std::make_pair(Key_t1(ds[i],alg[m]),
+        new TEfficiency( 
+          (std::string("Overall efficiency for ") + alg[m] + " and Dataset:" + ds[i] ).c_str(),
+          (std::string("Overall efficiency for ") + alg[m] + " and Dataset:" + ds[i] ).c_str(),
+          eg_key::Tight*(eg_key::Tight+1)-1,eg_key::Loose,eg_key::Tight*(eg_key::Tight+1)))
+        );
     }
   }
 
@@ -443,24 +479,20 @@ void D3PDAnalysis::loop(){
     fillRoc();
     fillFixedThres();
     forceNNThres();
-    clearDet();
-    clearFa();
   }
   fillHistsFor(sgn);
   fillHistsFor(bkg);
-  fillDet();
 #if DEBUG >= DEBUG_MSGS
   printDet();
 #endif
-  fillFa();
+  fillEfficiency();
 #if DEBUG >= DEBUG_MSGS
   printFa();
 #endif
-  if(!doForceRingerThres){
+  if(!doForceRingerThres&&doROC){
     fillRoc();
     fillFixedThres();
   }
-  fillEfficiency();
 
 #if DEBUG >= DEBUG_MSGS
   if(doDetailedTruth) printDetailedTruthEff();
@@ -507,11 +539,11 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
       const bool isTest = (doTestOnly)?(*d3pd->el_is_testCluster)[index]:1; // Here we set if this cluster should be tested
                                                                             // or it should be skipped by Ringer algorithm
                                                                             // as it was used in training.
-      if(!isTest)
+
+      if(doUseRingerTestOnStd&&!isTest) // if we want to use same test to both algorithms
         continue;
 
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
-      // Use test dataset only:
 
       if(doTruth && d3pd==sgn){
         if((*d3pd->el_truth_matched)[index] &&
@@ -520,6 +552,17 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
           (ds == eg_key::BackgroundFromSignalDs))
           ds = eg_key::Signal;
       }
+
+      // Algorithms Overall Eficiency:
+      for(unsigned i = eg_key::Loose; i < req_size; ++i){
+        bool isPassedStd = !(el_isEM & stdeg_req[i]);
+        // Overall algorithms efficiencies:
+        global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
+      }
+
+      // Use test dataset only:
+      if(!isTest)
+        continue;
 
       // Define some useful variables:
       const Float_t &el_nnOutput = (*d3pd->el_ringernn)[index];
@@ -603,6 +646,7 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       const Float_t cur_pid[] = {el_reta, el_eRatio, el_weta, el_weta2, el_hadleakage}; // Put pids on array, same order than pid
 
 
+      // Analysis using truth information:
       if(doTruth){
         const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
         const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
@@ -630,9 +674,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
               (el_truth_mothertype == signalMotherPdgId) && 
               (d3pd == sgn))
             ds = eg_key::Signal;
-          // Detailed truth fill:
         }
         if(doDetailedTruth){
+          // Detailed truth fill:
           if((TMath::Abs(el_truth_type) == signalPdgId) && 
               (el_truth_mothertype == signalMotherPdgId)){ // Then it s signal
             fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput,isTest);
@@ -661,6 +705,22 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
               default:
                 fillDetailedTruthCounterFor(truth::Other,full_ds,el_isEM,el_nnOutput,isTest);
             }
+          }
+        }
+      }
+
+      // Algorithms Overall Eficiency:
+      for(unsigned i = eg_key::Loose; i < req_size; ++i){
+        bool isPassedStd = !(el_isEM & stdeg_req[i]);
+        bool isPassedRinger = el_nnOutput > ring_req[i];
+        // Overall algorithms efficiencies:
+        if(!doForceRingerThres)
+          global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
+        if(isTest){
+          global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassedRinger,i);
+          for(unsigned j = eg_key::Loose; j < req_size; ++j){
+            bool isPassed = (el_nnOutput > ring_req[j]) && isPassedStd;
+            global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassed,j+i*eg_key::Tight);
           }
         }
       }
@@ -841,62 +901,6 @@ void D3PDAnalysis::fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE parti
 //========================================================================
 //========================================================================
 //========================================================================
-void D3PDAnalysis::fillDet(){
-#if DEBUG >= DEBUG_MSGS
-  std::cout << "On D3PDAnalysis::fillDet()" << std::endl;
-#endif
-
-  if(!det_rate){
-    det_rate = new std::vector<std::vector<float> >(4,std::vector<float>(4,0));
-  }
-
-  // TODO Change way to calculate this:
-  Double_t base_integral = nn_output_map->find(Key_t1(eg_key::Signal,eg_key::AllData))->second->Integral();
-  for(size_t i = 0; i < req_size;++i){ // Loop over ringer requirements
-    for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
-      Key_t1(eg_key::Signal,req[j]);
-      TH1F *hist = nn_output_map->find(Key_t1(eg_key::Signal,req[j]))->second;
-      (*det_rate)[i][j] = hist->Integral(hist->FindBin(ring_req[i]),hist->GetXaxis()->GetLast())
-        /base_integral*100.;
-    }
-  }
-
-#if DEBUG >= DEBUG_MSGS
-  std::cout << "Finished D3PDAnalysis::fillDet()" << std::endl;
-#endif
-}
-
-//========================================================================
-//========================================================================
-//========================================================================
-void D3PDAnalysis::fillFa(){
-#if DEBUG >= DEBUG_MSGS
-  std::cout << "On D3PDAnalysis::fillFa()" << std::endl;
-#endif
-
-  if(!fa_rate){
-    fa_rate = new std::vector<std::vector<float> >(4,std::vector<float>(4,0));
-  }
-
-  // TODO Change way to calculate this:
-  Double_t base_integral = nn_output_map->find(Key_t1(eg_key::Background,eg_key::AllData))->second->Integral();
-  for(size_t i = 0; i < req_size;++i){ // Loop over ringer requirements
-    for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
-      Key_t1(eg_key::Background,req[j]);
-      TH1F *hist = nn_output_map->find(Key_t1(eg_key::Background,req[j]))->second;
-      (*fa_rate)[i][j] = hist->Integral(hist->FindBin(ring_req[i]),hist->GetXaxis()->GetLast())
-        /base_integral*100.;
-    }
-  }
-#if DEBUG >= DEBUG_MSGS
-  std::cout << "Finished D3PDAnalysis::fillFa()" << std::endl;
-#endif
-}
-
-
-//========================================================================
-//========================================================================
-//========================================================================
 void D3PDAnalysis::printEff(){
 #if DEBUG >= DEBUG_MSGS
   std::cout << "On D3PDAnalysis::printEff()" << std::endl;
@@ -918,23 +922,33 @@ void D3PDAnalysis::printDet(){
   std::cout << "On D3PDAnalysis::printDet()" << std::endl;
 #endif
 
-  if(det_rate){
-    std::streamsize oldPres = std::cout.precision(2);
-    std::cout.setf(std::ios::fixed,std::ios::floatfield);
-    std::cout << "Columns are Standard Eg Loose, Medium and Tight." << std::endl;
-    std::cout << "Rows are OffRinger Loose, Medium and Tight." << std::endl;
-    std::cout << "Detection Rate (\%)." << std::endl;
-    for(size_t i = 0; i < req_size;++i){ // Loop over ringer requirements
-      for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
-        std::cout << (*det_rate)[i][j] << "\t";
-      }
-      std::cout << std::endl;
-    }
-    std::cout.unsetf(std::ios::fixed);
-    std::cout.precision(oldPres);
-  }else{
-    std::cout << "Detection Rate not filled yet. " << std::endl;
+  std::streamsize oldPres = std::cout.precision(2);
+  std::cout.setf(std::ios::fixed,std::ios::floatfield);
+  std::cout << "Columns are Standard Eg Loose, Medium and Tight." << std::endl;
+  std::cout << "Rows are OffRinger Loose, Medium and Tight." << std::endl;
+  std::cout << "Detection Rate (\%)." << std::endl;
+  std::cout << "\t\t\t";
+  for(size_t i = 1; i < req_size;++i){ // Loop over std requirements
+    TEfficiency *eff_holder = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Signal))->second;
+    std::cout << eff_holder->GetEfficiency(i)*100 << "(+" << 
+      eff_holder->GetEfficiencyErrorUp(i)*100 << "-" << 
+      eff_holder->GetEfficiencyErrorLow(i)*100 << ")\t";
   }
+  std::cout << std::endl;
+  for(size_t i = 1; i < req_size;++i){ // Loop over ringer requirements
+    TEfficiency *eff_holder = global_eff->find(Key_t1(eg_key::OffRinger,eg_key::Signal))->second;
+    std::cout << eff_holder->GetEfficiency(i)*100 << "(+" << 
+      eff_holder->GetEfficiencyErrorUp(i)*100 << "-" << 
+      eff_holder->GetEfficiencyErrorLow(i)*100 << ")\t";
+    for(size_t j = 1; j < req_size;++j){ // Loop over std requirements
+      std::cout << eff_holder->GetEfficiency(i+j*eg_key::Tight)*100 << "(+" << 
+        eff_holder->GetEfficiencyErrorUp(i+j*eg_key::Tight)*100 << "-" << 
+        eff_holder->GetEfficiencyErrorLow(i+j*eg_key::Tight)*100 << ")\t";
+    }
+    std::cout << std::endl;
+  }
+  std::cout.unsetf(std::ios::fixed);
+  std::cout.precision(oldPres);
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::printDet()" << std::endl;
 #endif
@@ -948,50 +962,39 @@ void D3PDAnalysis::printFa(){
   std::cout << "On D3PDAnalysis::printFa()" << std::endl;
 #endif
 
-  if(fa_rate){
-    std::streamsize oldPres = std::cout.precision(2);
-    std::cout.setf(std::ios::fixed,std::ios::floatfield);
-    std::cout << "Columns are Standard Eg Loose, Medium and Tight." << std::endl;
-    std::cout << "Rows are OffRinger Loose, Medium and Tight." << std::endl;
-    std::cout << "False Alarm Rate (\%)." << std::endl;
-    for(size_t i = 0; i < req_size;++i){ // Loop over ringer requirements
-      for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
-        std::cout << (*fa_rate)[i][j] << "\t";
-      }
-      std::cout << std::endl;
-    }
-    std::cout.unsetf(std::ios::fixed);
-    std::cout.precision(oldPres);
-  } else{
-    std::cout << "False Alarm Rate not filled yet. " << std::endl;
+  std::streamsize oldPres = std::cout.precision(2);
+  std::cout.setf(std::ios::fixed,std::ios::floatfield);
+  std::cout << "Columns are Standard Eg Loose, Medium and Tight." << std::endl;
+  std::cout << "Rows are OffRinger Loose, Medium and Tight." << std::endl;
+  std::cout << "False Alarm Rate (\%)." << std::endl;
+  std::cout << "\t\t\t";
+  for(size_t i = 1; i < req_size;++i){ // Loop over std requirements
+    TEfficiency *eff_holder = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Background))->second;
+    std::cout << eff_holder->GetEfficiency(i)*100 << "(+" << 
+      eff_holder->GetEfficiencyErrorUp(i)*100 << "-" << 
+      eff_holder->GetEfficiencyErrorLow(i)*100 << ")\t";
   }
+  std::cout << std::endl;
+  for(size_t i = 1; i < req_size;++i){ // Loop over ringer requirements
+    TEfficiency *eff_holder = global_eff->find(Key_t1(eg_key::OffRinger,eg_key::Background))->second;
+    std::cout << eff_holder->GetEfficiency(i)*100 << "(+" << 
+      eff_holder->GetEfficiencyErrorUp(i)*100 << "-" << 
+      eff_holder->GetEfficiencyErrorLow(i)*100 << ")\t";
+    for(size_t j = 1; j < req_size;++j){ // Loop over std requirements
+      std::cout << eff_holder->GetEfficiency(i+j*eg_key::Tight)*100 << "(+" << 
+        eff_holder->GetEfficiencyErrorUp(i+j*eg_key::Tight)*100 << "-" << 
+        eff_holder->GetEfficiencyErrorLow(i+j*eg_key::Tight)*100 << ")\t";
+    }
+    std::cout << std::endl;
+  }
+  std::cout.unsetf(std::ios::fixed);
+  std::cout.precision(oldPres);
+
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::printFa()" << std::endl;
 #endif
 }
 
-
-//========================================================================
-//========================================================================
-//========================================================================
-inline
-void D3PDAnalysis::clearDet(){
-  if(det_rate){
-    delete det_rate;
-    det_rate = 0;
-  }
-}
-
-//========================================================================
-//========================================================================
-//========================================================================
-inline
-void D3PDAnalysis::clearFa(){
-  if(fa_rate){
-    delete fa_rate;
-    fa_rate = 0;
-  }
-}
 
 //========================================================================
 //========================================================================
@@ -1049,10 +1052,6 @@ void D3PDAnalysis::fillFixedThres(){
 #if DEBUG >= DEBUG_MSGS
   std::cout << "On fillFixedThres()" << std::endl;
 #endif
-  if(!det_rate)
-    fillDet();
-  if(!fa_rate)
-    fillFa();
 
   if(!rocDetVec)
     fillRoc();
@@ -1073,7 +1072,9 @@ void D3PDAnalysis::fillFixedThres(){
   bool end_fa = 0, end_det = 0;
   unsigned k_fa = 1, k_det = 1; 
   for (unsigned nbin = 0; nbin <= hgres; ++nbin ){
-    if ( !end_fa && ((*rocFaVec)[nbin] < (*fa_rate)[0][k_fa]) ){
+    Float_t std_det = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Signal))->second->GetEfficiency(k_det)*100;
+    Float_t std_fa = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Background))->second->GetEfficiency(k_fa)*100;
+    if ( !end_fa && ((*rocFaVec)[nbin] < std_fa) ){
       (*nn_det_for_fixed_std_fa_rate)[k_fa-1] = (*rocDetVec)[nbin];
       (*nn_thres_for_fixed_std_fa_rate)[k_fa-1] = -1. + (Float_t)(nbin)*2/(Float_t)(hgres);
       if(++k_fa==req_size){
@@ -1082,7 +1083,7 @@ void D3PDAnalysis::fillFixedThres(){
           break;
       }
     }
-    if ( !end_det && ((*rocDetVec)[nbin] < (*det_rate)[0][k_det]) ){
+    if ( !end_det && ((*rocDetVec)[nbin] < std_det) ){
       (*nn_fa_for_fixed_std_det_rate)[k_det-1] = (*rocFaVec)[nbin];
       (*nn_thres_for_fixed_std_det_rate)[k_det-1] = -1. + (Float_t)(nbin)*2/(Float_t)(hgres);
       if(++k_det==req_size){
@@ -1255,7 +1256,7 @@ void D3PDAnalysis::draw(){
   drawNeuralOutputPlots(); outFile->Flush();
   drawEfficiencyPlots(); outFile->Flush();
   drawCorrelationPlots(); outFile->Flush();
-  drawROC(); outFile->Flush();
+  if(doForceRingerThres||!doForceRingerThres&&doROC) {drawROC(); outFile->Flush();}
   if(doHtmlOutput) print_html_tables();
 
 #if DEBUG >= DEBUG_MSGS
@@ -1679,7 +1680,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
       for(size_t m = 0; m < alg_size;++m){
         for(size_t j = 0; j < var_size;++j){
           Key_t1 key(ds[i],alg[m],req[n],var[j]); // Numerator Key
-          TGraphAsymmErrors *eff_graph = efficiency_map->find(key)->second->GetPaintedGraph(); // Efficiency graphogram
+          TGraphAsymmErrors *eff_graph = efficiency_map->find(key)->second->GetPaintedGraph(); // Efficiency graph
           eff_graph->SetMarkerColor(compEffMarkerStyle[alg[m]]);
           eff_graph->SetFillColor(compEffColor[alg[m]]);
           eff_graph->SetLineColor(compEffColor[alg[m]]);
@@ -1844,24 +1845,26 @@ void D3PDAnalysis::drawROC(){
   std::vector<TLine*> lineVec;
   TLegend legend(.58,.14,.98,.42);
   for(unsigned i = 1; i<req_size;++i){
-    standardVec.push_back(new TMarker((*fa_rate)[0][i],(*det_rate)[0][i],rocEgMarker[i-1]));
+    const Float_t std_det = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Signal))->second->GetEfficiency(i)*100;
+    const Float_t std_fa = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Background))->second->GetEfficiency(i)*100;
+    standardVec.push_back(new TMarker(std_fa,std_det,rocEgMarker[i-1]));
     standardVec[i-1]->SetMarkerColor(rocEgColor[i-1]);
     standardVec[i-1]->Draw("same");
     TLine *line_vertical = 0;
     // Check greater detection rate:
-    if ( (*nn_det_for_fixed_std_fa_rate)[i-1] > (*det_rate)[0][i] ) // (*det_rate)[0][i] = overall detection rate for standard eg
-      line_vertical = new TLine((*fa_rate)[0][i], 0., (*fa_rate)[0][i], (*nn_det_for_fixed_std_fa_rate)[i-1]);
+    if ( (*nn_det_for_fixed_std_fa_rate)[i-1] > std_det ) // std_det = overall detection rate for standard eg
+      line_vertical = new TLine(std_fa, 0., std_fa, (*nn_det_for_fixed_std_fa_rate)[i-1]);
     else 
-      line_vertical = new TLine((*fa_rate)[0][i], 0., (*fa_rate)[0][i], (*det_rate)[0][i]);
+      line_vertical = new TLine(std_fa, 0., std_fa, std_det);
     line_vertical->SetLineStyle(kDashed);
     line_vertical->Draw();
     lineVec.push_back(line_vertical);
-    TLine *line_ringer = new TLine(0., (*nn_det_for_fixed_std_fa_rate)[i-1], (*fa_rate)[0][i], (*nn_det_for_fixed_std_fa_rate)[i-1]);
+    TLine *line_ringer = new TLine(0., (*nn_det_for_fixed_std_fa_rate)[i-1], std_fa, (*nn_det_for_fixed_std_fa_rate)[i-1]);
     line_ringer->SetLineStyle(kDashed);
     line_ringer->SetLineColor(kBlue);
     line_ringer->Draw();
     lineVec.push_back(line_ringer);
-    TLine *line_standard = new TLine(0., (*det_rate)[0][i], (*fa_rate)[0][i], (*det_rate)[0][i]);
+    TLine *line_standard = new TLine(0., std_det, std_fa, std_det);
     line_standard->SetLineStyle(kDashed);
     line_standard->SetLineColor(kRed);
     line_standard->Draw();
@@ -1892,12 +1895,8 @@ void D3PDAnalysis::print_html_tables(){
   std::cout << "On print_html_tables()" << std::endl;
 #endif
 
-  if(!det_rate)
-    fillDet();
   printEffHtmlTable("Detection Rate");
 
-  if(!fa_rate)
-    fillFa();
   printEffHtmlTable("False Alarm Rate");
 
   if(doDetailedTruth){
@@ -1921,14 +1920,13 @@ void D3PDAnalysis::printEffHtmlTable(const char *effName){
 
   gSystem->cd(ana_place.c_str()); // Get back to base analysis dir
 
-  std::vector<std::vector<float> > *eff_rate;
+  eg_key::DATASET ds;
   std::string outputName;
   if(std::string(effName) == yAxis_special[0]){
-    eff_rate = det_rate;
+    ds = eg_key::Signal;
     outputName = "det_rate.html";
-
   } else {
-    eff_rate = fa_rate;
+    ds = eg_key::Background;
     outputName = "fa_rate.html";
   }
   std::ofstream outFile( (ana_name + "_" + outputName).c_str()); // output
@@ -1948,13 +1946,23 @@ void D3PDAnalysis::printEffHtmlTable(const char *effName){
   outFile << "<th rowspan=\"4\"><div class=\"verticaltext\"><h3>Calorimeter Ringer E/&gamma; Algorithm</h3></div></th>" << std::endl;
   outFile << "<td>All Data</td>" << std::endl;
   outFile << "<td>   -   </td>" << std::endl;
-  for(size_t i = 1; i < req_size;++i)// Loop over ringer requirements
-    outFile << "<td>"  << (*eff_rate)[0][i] << "</td>" << std::endl;
+  for(size_t i = 1; i < req_size;++i){// Loop over ringer requirements
+    TEfficiency *eff_holder = global_eff->find(Key_t1(eg_key::OffEgamma,ds))->second;
+    outFile << "<td>"  << eff_holder->GetEfficiency(i)*100 << "</br>(+" <<
+      eff_holder->GetEfficiencyErrorUp(i)*100 << "-" << 
+      eff_holder->GetEfficiencyErrorLow(i)*100 << ")</td>" << std::endl;
+  }
   outFile << "</tr>" << std::endl;
   for(size_t i = 1; i < req_size;++i){ // Loop over ringer requirements
     outFile << std::string("<td>NN ") + req[i] + "</td>" << std::endl;
-    for(size_t j = 0; j < req_size;++j){ // Loop over std requirements
-      outFile << "<td>"  << (*eff_rate)[i][j]<< "</td>" << std::endl;
+    TEfficiency *eff_holder = global_eff->find(Key_t1(eg_key::OffRinger,ds))->second;
+    outFile << "<td>"  << eff_holder->GetEfficiency(i)*100 << "</br>(+" << 
+      eff_holder->GetEfficiencyErrorUp(i)*100 << "-" <<
+      eff_holder->GetEfficiencyErrorLow(i)*100 << ")</td>" << std::endl;
+    for(size_t j = 1; j < req_size;++j){ // Loop over std requirements
+      outFile << "<td>"  << eff_holder->GetEfficiency(i+j*eg_key::Tight)*100 << "</br>(+" <<
+        eff_holder->GetEfficiencyErrorUp(i+j*eg_key::Tight)*100 << "-" <<
+        eff_holder->GetEfficiencyErrorLow(i+j*eg_key::Tight)*100 << ")</td>" << std::endl;
     }
     outFile << "</tr>" << std::endl;
   }
@@ -2034,7 +2042,7 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
     for(size_t k = 0; k < alg_size;++k){
       for(size_t m = eg_key::Loose; m < req_size;++m){
         TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds,req[m],alg[k]))->second;
-        outFile<<"<td>"<<eff_holder->GetEfficiency(j+1)*100 << "(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
+        outFile<<"<td>"<<eff_holder->GetEfficiency(j+1)*100 << "</br>(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
           << "-" << eff_holder->GetEfficiencyErrorLow(j+1)*100 << ")</td>";
       }
       outFile << std::endl;

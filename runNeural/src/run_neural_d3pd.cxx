@@ -705,7 +705,7 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   }
 
   // Read branches:
-  int el_n, el_n_test;
+  int el_n;
   std::vector<std::vector<float> > *ringsVector = new std::vector<std::vector <float> >;
   std::vector<double> *nn_output = new std::vector<double>;
   // Info needed if separing test clusters
@@ -759,9 +759,6 @@ void runNN(const Neural *the_nn,const opts &setOpts){
     inputChain->GetEntry(jentry);
     nn_output->clear();
     for (Int_t index_el=0; index_el < el_n; ++index_el ){
-      if(setOpts.doTestOnly && !isTestCluster(setOpts,index_el,input1,input2)){
-        continue;
-      }
       // If we arived here, this is a testing particle:
       std::vector<float> rings = (*ringsVector)[index_el]; // We get copy a from ringsVector
       normalize(rings,setOpts); // normalize them
@@ -773,7 +770,6 @@ void runNN(const Neural *the_nn,const opts &setOpts){
 
   if(setOpts.doTestOnly){ // Add 2 branches containing test information:
     TBranch *b_el_is_testCluster = outputTree->Branch("el_is_testCluster",&el_is_testCluster);
-    TBranch *b_el_n_test = outputTree->Branch("el_n_test",&el_n_test,"el_n_test/I");
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
       inputChain->GetEntry(jentry);
       unsigned non_test_events = 0;
@@ -785,9 +781,7 @@ void runNN(const Neural *the_nn,const opts &setOpts){
         }
         el_is_testCluster->at(index_el) = 1; // flag to tag test cluster
       }
-      el_n_test = el_n - non_test_events;
       b_el_is_testCluster->Fill();
-      b_el_n_test->Fill();
     }
   }
 

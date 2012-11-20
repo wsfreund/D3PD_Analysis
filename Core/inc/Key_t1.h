@@ -33,7 +33,7 @@ public:
   *   These constructors are used to create class compatibility for all key types that may be used,
   * creating unique keys for each one of them.
   *   Every constructor here calls the main class constructor with the other parameters set as
-  * Unknown key type. The main reason for doing that is to diferenciate a call made by the user
+  * Unknown key type. The main reason for doing that is to differenciate a call made by the user
   * from one call made by some incomplete constructor.
   */
   template<class T1> Key_t1(T1 var1){
@@ -132,8 +132,8 @@ private:
 };
 
 
-//   Template members are declared here so that it makes possible while linking files
-// to the compiler generate code for all necessary template functions.
+//   Template members are declared here so that it makes possible, while linking files,
+// to the compiler generate the necessary code for all template functions.
 template<class T1, class T2, class T3, class T4, class T5, class T6> 
 inline Key_t1::Key_t1(T1 var1, T2 var2, T3 var3, T4 var4, T5 var5, T6 var6):
   req(eg_key::UnkReq),
