@@ -14,9 +14,9 @@ void D3PDAnalysis::init(){
   gSystem->cd(ana_place.c_str());
   outFile = new TFile( (ana_name + ".root").c_str(),"recreate");
 
-  if(sgn->fChain->FindBranch("el_n_test"))
+  if(sgn->fChain->FindBranch("el_is_testCluster"))
     useTestOnlySgn = true;
-  if(bkg->fChain->FindBranch("el_n_test"))
+  if(bkg->fChain->FindBranch("el_is_testCluster"))
     useTestOnlyBkg = true;
 
   std::cout << "== Test info available for Signal = " << useTestOnlySgn << std::endl;
