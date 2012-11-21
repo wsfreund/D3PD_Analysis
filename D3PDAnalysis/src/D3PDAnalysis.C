@@ -179,7 +179,7 @@ void D3PDAnalysis::setEtHists(){
   if(useTestOnlySgn||(useTestOnlyBkg&&!doUseRingerTestOnStd)){
     et_energy_test_map = new std::map<Key_t1,TH1F*>();
     for(unsigned i = 0; i < ds_size;++i){
-      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,1);
+      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
       hist->SetBit(TH1::kCanRebin);
       et_energy_test_map->insert(std::make_pair(Key_t1(ds[i]),hist));
     }
@@ -772,31 +772,33 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
               corr_map->find(Key_t1(eg_key::CrackRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
           }
         }
-        // Loop to fill other maps:
-        for(size_t i = 0; i < req_size;++i){
-          if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
-            // Fill neural output hists:
-            if(!doForceRingerThres)
-              nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
-            // If requirement is greater than Alldata:
-            if(i){
-              // Fill efficiency hists:
-              for(size_t n = 0; n < var_size;++n){
-                var_dist_map->find(Key_t1(ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
-              }
+      }
+      // Loop to fill other maps:
+      for(size_t i = 0; i < req_size;++i){
+        if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
+          // Fill neural output hists:
+          if(!doForceRingerThres)
+            nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
+          // If requirement is greater than Alldata:
+          if(i){
+            // Fill efficiency hists:
+            for(size_t n = 0; n < var_size;++n){
+              var_dist_map->find(Key_t1(ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
             }
-            // Fill corr maps
-            for(size_t n = 0; n < pid_size;++n){
-              corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              if(TMath::Abs(el_eta)<crack_lb) // Barrel
-                corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-                corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-              else // Crack region
-                corr_map->find(Key_t1(eg_key::CrackRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            }
-          } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
-        }
+          }
+          // Fill corr maps
+          for(size_t n = 0; n < pid_size;++n){
+            corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            if(TMath::Abs(el_eta)<crack_lb) // Barrel
+              corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
+              corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            else // Crack region
+              corr_map->find(Key_t1(eg_key::CrackRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+          }
+        } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+      }
+      if(isTest){
         for(size_t i = 1; i < req_size;++i){
           if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
             // Fill efficiency hists:
