@@ -790,9 +790,9 @@ void runNN(const Neural *the_nn,const opts &setOpts){
       }
       b_el_is_testCluster->Fill();
     }
+    std::cout << "                                                                        \r" << std::flush;
+    std::cout << "-- Adding test info: Finished!" << std::endl;
   }
-  std::cout << "                                                                        \r" << std::flush;
-  std::cout << "-- Adding test info: Finished!" << std::endl;
 
   TFile *outputFile = new TFile(setOpts.outputFile.c_str(),"recreate");
   outputTree->Write("",TObject::kOverwrite);
@@ -835,8 +835,6 @@ bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const
       ++trn_idx;
       if(trn_idx == (clusterVec[cluster_idx])*cluster_size){
         ++cluster_idx;
-        if(cluster_idx==clusterVec.size())
-          throw 0;
       }
       return true; // Used as test
     }
