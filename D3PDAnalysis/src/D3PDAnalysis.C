@@ -179,7 +179,7 @@ void D3PDAnalysis::setEtHists(){
   if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
     et_energy_test_map = new std::map<Key_t1,TH1F*>();
     for(unsigned i = 0; i < ds_size;++i){
-      TH1F *hist = new TH1F( (ds[i])).c_str(), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
+      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
       hist->SetBit(TH1::kCanRebin);
       et_energy_test_map->insert(std::make_pair(Key_t1(ds[i]),hist));
     }
