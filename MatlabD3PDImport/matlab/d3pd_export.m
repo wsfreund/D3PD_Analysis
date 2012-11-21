@@ -23,7 +23,7 @@ if(strcmp(analysis.opts.trainWrt,'truth'))
   fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',1);
   fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',analysis.opts.sgnTrnPdgIdType); 
   fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.sgnTrnMotherPdgIdType); 
-elseif
+elseif(strcmp(analysis.opts.trainWrt,'standard'))
   fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',0);
   fprintf(pyFile,'self.sgnTrnIsEM_mask=%d\n',analysis.opts.sgnTrnIsEM_mask); 
   fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.bkgTrnIsEM_mask); 
