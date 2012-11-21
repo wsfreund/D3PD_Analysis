@@ -317,14 +317,14 @@ void run_d3pd(const opts &setOpts){
   TChain* sgn = readTChainFilesFromPath(setOpts.search_string_sgn.c_str(),"egammaD3PD");
 
 #if DEBUG >= DEBUG_MSGS
-  std::cout << "sgn n_entries = " << (unsigned) sgn->GetEntries() << std::endl;
+  std::cout << "Total entries for signal dataset = " << (unsigned) sgn->GetEntries() << std::endl;
 #endif
   
   TChain* bkg = readTChainFilesFromPath(setOpts.search_string_bkg.c_str(),"egammaD3PD");
 
 #if DEBUG >= DEBUG_MSGS
   //bkgs->Print();
-  std::cout << "bkg n_entries = " << (unsigned) bkg->GetEntries() << std::endl;
+  std::cout << "Total entries for background dataset = " << (unsigned) bkg->GetEntries() << std::endl;
 #endif
 
   D3PDAnalysis t1(sgn,bkg,setOpts.anaName.c_str(),setOpts.anaDir.c_str(),

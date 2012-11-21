@@ -62,10 +62,6 @@ void D3PDAnalysis::printMaps() const{
         i!=global_eff->end();++i){
       std::cout << "Integral(Hist) = "<< i->second->GetPassedHistogram()->Integral() << "/" << 
         i->second->GetTotalHistogram()->Integral() << "\t" <<  i->first << std::endl;
-      std::cout << "--------- Passed: " << std::endl;
-      i->second->GetPassedHistogram()->Print("all");
-      std::cout << "--------- Total: " << std::endl;
-      i->second->GetTotalHistogram()->Print("all");
     }
   }
 
@@ -514,11 +510,14 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
 
   eg_key::DATASET ds = eg_key::UnkDs, full_ds = eg_key::UnkDs;
   bool doTestOnly = false; // Use only test clusters
+  std::string outLabel = "== Getting Ringer Output for "; 
   if(d3pd==sgn){
     ds = eg_key::Signal; 
+    outLabel += "Signal Dataset";
     if(doTruth) full_ds = eg_key::SignalFullDs;
     if(useTestOnlySgn) doTestOnly = true;
   } else {
+    outLabel += "Background Dataset";
     ds = eg_key::Background;
     if(useTestOnlyBkg) doTestOnly = true;
   }
@@ -531,6 +530,9 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
     Long64_t ientry = d3pd->LoadTree(jentry);
     if (ientry < 0) break;
     d3pd->fChain->GetEntry(jentry);
+    if(!( ((int)100.*jentry/nentries) % 1 )){
+      std::cout << outLabel << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
+    }
     // Read all Clusters:
     for(Int_t index = 0, testIdx = 0; index < d3pd->el_n; ++index ){
 
@@ -581,6 +583,9 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
     }
   }
 
+  std::cout << "                                                                                 \r" ;
+  std::cout << outLabel << " Finished!"<< std::endl;
+
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::fastFillNeuralHists()" << std::endl;
 #endif
@@ -598,11 +603,14 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
   bool doTestOnly = false; // Use only test clusters
 
+  std::string outLabel = "== Filling Histograms for ";
   if(d3pd==sgn){
+    outLabel += "Signal Dataset:";
     ds = eg_key::Signal; 
     if(useTestOnlySgn) doTestOnly = true;
     if(doTruth) full_ds = eg_key::SignalFullDs;
   } else {
+    outLabel += "Background Dataset:";
     ds = eg_key::Background;
     if(doTruth) full_ds = eg_key::Background;
     if(useTestOnlyBkg) doTestOnly = true;
@@ -618,6 +626,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
     Long64_t ientry = d3pd->LoadTree(jentry);
     if (ientry < 0) break;
     d3pd->fChain->GetEntry(jentry);
+    if(!( ((int)100.*jentry/nentries) % 1 )){
+      std::cout << outLabel << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
+    }
     // Read all Clusters:
     for(Int_t index = 0, testIdx = 0; index < d3pd->el_n; ++index ){
       if(doTruth && d3pd==sgn) ds = eg_key::BackgroundFromSignalDs; // Reset ds to decide if it is signal or not
@@ -864,6 +875,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
     }
   }
 
+  std::cout << "                                                                                 \r" ;
+  std::cout << outLabel << " Finished!"<< std::endl;
+
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::fillHistsFor()" << std::endl;
 #endif
@@ -1022,6 +1036,9 @@ void D3PDAnalysis::fillRoc(){
   // Fill roc and fa fixed thress:
   float bestSP = 0;
   for (unsigned nbin = 1; nbin <= hgres; ++nbin ){
+    if(!( ((int)100.*nbin/hgres) % 1 )){
+      std::cout << "== Filling Ringer ROC: " << (int)100.*nbin/hgres << "\% Completed \r" << std::flush;
+    }
     (*rocFaVec)[nbin-1] = bkg_highres->Integral(nbin,last_bkg)/bkg_highres->Integral()*100.;
     (*rocDetVec)[nbin-1] = sgn_highres->Integral(nbin,last_sgn)/sgn_highres->Integral()*100.;
     (*rocSPVec)[nbin-1] = calcSP((*rocDetVec)[nbin-1],(100.-(*rocFaVec)[nbin-1]));
@@ -1030,6 +1047,9 @@ void D3PDAnalysis::fillRoc(){
       bestSPthres = -1 + (Float_t)(nbin-1)*2/(Float_t)(hgres);
     }
   }
+
+  std::cout << "                                                                                 \r" ;
+  std::cout << "== Filling Ringer ROC: Finished!" << std::endl;
   (*rocFaVec)[hgres] = 0.;
   (*rocDetVec)[hgres] = 0.;
   (*rocSPVec)[hgres] = 0.;
@@ -1094,6 +1114,7 @@ void D3PDAnalysis::fillFixedThres(){
     }
   }
 
+
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Thresholds for achieving Std Egamma False Alarm Rates:" << std::endl;
   for(unsigned k = 0; k < nn_thres_for_fixed_std_fa_rate->size();++k)
@@ -1132,10 +1153,12 @@ void D3PDAnalysis::forceNNThres(){
   set_nn_medium(bestSPthres);
   set_nn_tight(nn_thres_for_fixed_std_fa_rate->at(eg_key::Tight-1));
 
+  std::cout << "== Set ringer requirements: " << std::endl;
+  std::cout << "== -> Loose: " << ring_req[1] << std::endl;
+  std::cout << "== -> Medium: " << ring_req[2] << std::endl;
+  std::cout << "== -> Tight: " << ring_req[3] << std::endl;
+
 #if DEBUG >= DEBUG_MSGS
-  std::cout << "Set nn_loose threshold to " << ring_req[1] << std::endl;
-  std::cout << "Set nn_medium threshold to " << ring_req[2] << std::endl;
-  std::cout << "Set nn_tight threshold to " << ring_req[3] << std::endl;
   std::cout << "Finished D3PDAnalysis::forceNNThres()" << std::endl;
 #endif
 }

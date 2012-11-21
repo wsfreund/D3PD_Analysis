@@ -1,6 +1,6 @@
 include $(ROOTSYS)/etc/Makefile.arch
 ROOTLIBS := $(shell root-config --libs) 
-DEBUG := 2
+DEBUG := 0
 INCFLAGS := $(shell root-config --cflags) -DDEBUG=$(DEBUG)
 
 SPACE :=
