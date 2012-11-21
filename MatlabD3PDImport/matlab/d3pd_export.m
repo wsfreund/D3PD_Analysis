@@ -19,7 +19,7 @@ for k=1:length(analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters)-1
   fprintf(pyFile,'%d,',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(k));
 end
 fprintf(pyFile,'%d]\n',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(end));
-if(strcmp(analysis.opts.trainWrt,'truth')
+if(strcmp(analysis.opts.trainWrt,'truth'))
   fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',1);
   fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',analysis.opts.sgnTrnPdgIdType); 
   fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.sgnTrnMotherPdgIdType); 
