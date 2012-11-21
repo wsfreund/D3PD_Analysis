@@ -21,8 +21,8 @@ end
 fprintf(pyFile,'%d]\n',analysis.(hNNname).(nNetTrnInfo).bkg_tst_clusters(end));
 if(strcmp(analysis.opts.trainWrt,'truth'))
   fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',1);
-  fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',analysis.opts.sgnTrnPdgIdType); 
-  fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.sgnTrnMotherPdgIdType); 
+  fprintf(pyFile,'self.sgnTrnPdgIdType=%d\n',analysis.opts.truth_type); 
+  fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.truth_mothertype); 
 elseif(strcmp(analysis.opts.trainWrt,'standard'))
   fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',0);
   fprintf(pyFile,'self.sgnTrnIsEM_mask=%d\n',analysis.opts.trnSgnIsEM_mask); 
