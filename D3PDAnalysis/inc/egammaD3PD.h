@@ -34,7 +34,6 @@ public :
 
    // Declaration of leaf types
    Int_t           el_n;
-   Int_t           el_n_test;
    std::vector<float>   *el_E;
    std::vector<float>   *el_Et;
    std::vector<float>   *el_pt;
@@ -798,7 +797,6 @@ public :
 
    // List of branches
    TBranch        *b_el_n;   //!
-   TBranch        *b_el_n_test;   //!
    TBranch        *b_el_E;   //!
    TBranch        *b_el_Et;   //!
    TBranch        *b_el_pt;   //!
@@ -2391,8 +2389,6 @@ void egammaD3PD::Init(TTree *tree)
    fChain->SetMakeClass(1);
 
    fChain->SetBranchAddress("el_n", &el_n, &b_el_n);
-   if(fChain->FindBranch("el_n_test"))
-     fChain->SetBranchAddress("el_n_test", &el_n_test, &b_el_n_test);
    fChain->SetBranchAddress("el_E", &el_E, &b_el_E);
    fChain->SetBranchAddress("el_Et", &el_Et, &b_el_Et);
    fChain->SetBranchAddress("el_pt", &el_pt, &b_el_pt);
