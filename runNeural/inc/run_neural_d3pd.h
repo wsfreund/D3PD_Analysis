@@ -34,8 +34,8 @@ enum NORMALIZATIONS{
 };
 
 enum TRAINED_WRT{
-  Standard_Eg,
-  Truth
+  Standard_Eg = 0,
+  Truth = 1
 };
 
 

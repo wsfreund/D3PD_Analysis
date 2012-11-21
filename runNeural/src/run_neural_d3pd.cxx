@@ -820,13 +820,10 @@ bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const
   static unsigned cluster_idx = 0;
   const int &thePdg = TMath::Abs(static_cast<const std::vector<int>*>(pdg)->at(index));
   const int &theMotherPdg = static_cast<const std::vector<int>*>(motherpdg)->at(index);
-  std::cout << "NEW EVT :: ";
   if(thePdg!=setOpts.sgnTrnPdgIdType){
     return true; // Use as test (not used in training
-    std::cout << " IT IS NOT SIGNAL" << std::endl;
   }
   if(theMotherPdg!=setOpts.sgnTrnMotherPdgIdType){
-    std::cout << " IT IS NOT SIGNAL" << std::endl;
     return true; // Use as test (not used in training
   }
 
@@ -834,19 +831,15 @@ bool testSgnTruth(const opts &setOpts, const Int_t index, const void *pdg, const
   const unsigned &cluster_size = setOpts.sgnCluster_size;
   const std::vector<unsigned> &clusterVec = setOpts.testSgnClusters;
 
-  std::cout << " trn_idx : " << trn_idx << " : cluster_idx : " << cluster_idx;
-
   if( trn_idx >= (clusterVec[cluster_idx]-1)*cluster_size){
     if (trn_idx < (clusterVec[cluster_idx])*cluster_size){
       ++trn_idx;
-      std::cout << " :: CONSIDERED AS TEST" << std::endl;
       if(trn_idx == (clusterVec[cluster_idx])*cluster_size){
         ++cluster_idx;
       }
       return true; // Used as test
     }
   }
-  std::cout << " :: TRAIN AND VALIDATION" << std::endl;
   ++trn_idx;
   return false; // Used as train or validation
 }
