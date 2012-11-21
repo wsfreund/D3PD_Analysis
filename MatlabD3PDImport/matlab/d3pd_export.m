@@ -25,7 +25,7 @@ if(strcmp(analysis.opts.trainWrt,'truth'))
   fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.sgnTrnMotherPdgIdType); 
 elseif(strcmp(analysis.opts.trainWrt,'standard'))
   fprintf(pyFile,'self.ringerNNTrnWrt=%d\n',0);
-  fprintf(pyFile,'self.sgnTrnIsEM_mask=%d\n',analysis.opts.sgnTrnIsEM_mask); 
-  fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.bkgTrnIsEM_mask); 
+  fprintf(pyFile,'self.sgnTrnIsEM_mask=%d\n',analysis.opts.trnSgnIsEM_mask); 
+  fprintf(pyFile,'self.sgnTrnMotherPdgIdType=%d\n',analysis.opts.trnBkgIsEM_mask); 
 end
 fprintf(pyFile,'self.normalization=%s\n',analysis.opts.norm); 
