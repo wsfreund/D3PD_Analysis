@@ -40,7 +40,7 @@ public:
   D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_name = "CaloRinger_Offline",
     const char *ana_place = "", bool doTruth = false, bool debug = false, 
     bool doForceRingerThres = true, bool doDetailedTruth = false, bool doHtmlOutput = true,
-    bool doTexOutput = true, bool doROC = true);
+    bool doTexOutput = true, bool doROC = true, bool doUseRingerTestOnStd = false);
 
   // Main methods:
   void init();
@@ -293,14 +293,14 @@ const eg_key::PID D3PDAnalysis::pid[D3PDAnalysis::pid_size] =
 inline
 D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_name,
   const char *ana_place, bool doTruth, bool debug, bool doForceRingerThres, bool doDetailedTruth,
-  bool doHtmlOutput, bool doTexOutput, bool doROC)
+  bool doHtmlOutput, bool doTexOutput, bool doROC, bool doUseRingerTestOnStd)
 :
   sgn(0), bkg(0), ana_name(ana_name), ana_place(ana_place), 
   doTruth(doTruth), debug(debug), doForceRingerThres(doForceRingerThres),
   doDetailedTruth(doDetailedTruth), doHtmlOutput(doHtmlOutput),
-  doTexOutput(doTexOutput), doROC(doROC),
+  doTexOutput(doTexOutput), doROC(doROC), doUseRingerTestOnStd(doUseRingerTestOnStd),
   // Members not configurable by user using constructor:
-  doUseRingerTestOnStd(false),  useTestOnlySgn(false), useTestOnlyBkg(false), 
+  useTestOnlySgn(false), useTestOnlyBkg(false), 
   hgres(100000),
   et_energy_map(0),et_energy_test_map(0),
   nn_output_map(0),particles_map(0),

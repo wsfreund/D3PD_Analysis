@@ -15,6 +15,7 @@ int main(int argc, char *argv[]){
   running_opts.doHtmlOutput = true;
   running_opts.doTexOutput = true;
   running_opts.doROC = true;
+  running_opts.doUseRingerTestOnStd = false;
   running_opts.anaName = "CaloRinger_Analysis_ElectronVsJet";
   running_opts.anaDir = "";
   running_opts.high_resolution_bin = 10000;
@@ -123,6 +124,13 @@ void readInputs(int argc, char *argv[], opts &setOpts){
           setOpts.doROC = atoi(argv[ip++]);
         } else {
           setOpts.doROC = true;
+        }
+      } else if (std::string(argv[ip]) == "--doUseRingerTestOnStd") {
+        ++ip;
+        if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
+          setOpts.doUseRingerTestOnStd = atoi(argv[ip++]);
+        } else {
+          setOpts.doUseRingerTestOnStd = true;
         }
       } else if (std::string(argv[ip]) == "--anaName") {
         ++ip;
@@ -248,6 +256,7 @@ void readInputs(int argc, char *argv[], opts &setOpts){
   std::cout << "-- doHtmlOutput = = " << setOpts.doHtmlOutput << std::endl;
   std::cout << "-- doTexOutput = = " << setOpts.doTexOutput << std::endl;
   std::cout << "-- doROC = " << setOpts.doROC << std::endl;
+  std::cout << "-- doUseRingerTestOnStd = " << setOpts.doUseRingerTestOnStd << std::endl;
   std::cout << "-- anaName = " << setOpts.anaName << std::endl;
   std::cout << "-- anaDir = " << setOpts.anaDir << std::endl;
   std::cout << "-- high_resolution_bin = " << setOpts.high_resolution_bin << std::endl;
@@ -288,6 +297,8 @@ void help(){
             << "      Create tex tables containing efficiencies. \n\n"
             << "    --doROC [bool] >1 \n"
             << "      Print ROC. \n\n"
+            << "    --doUseRingerTestOnStd [bool] >0 \n"
+            << "      Use same test particles used on Ringer to Standard Egamma. \n\n"
             << "    --high_resolution_bin [Unsigned>1000] >10000 \n"
             << "      Number of bins on high resolutions histograms. \n\n"
             << "    --signalPdgId [Unsigned] >11 (electrons & positrons)\n"
@@ -328,7 +339,7 @@ void run_d3pd(const opts &setOpts){
 
   D3PDAnalysis t1(sgn,bkg,setOpts.anaName.c_str(),setOpts.anaDir.c_str(),
       setOpts.doTruth,setOpts.debug,setOpts.doForceRingerThres,setOpts.doDetailedTruth,
-      setOpts.doHtmlOutput,setOpts.doTexOutput,setOpts.doROC);
+      setOpts.doHtmlOutput,setOpts.doTexOutput,setOpts.doROC,setOpts.doUseRingerTestOnStd);
 
   t1.set_hgres(setOpts.high_resolution_bin);
   // Truth pdg id matches for signal:

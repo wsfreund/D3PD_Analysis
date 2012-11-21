@@ -29,6 +29,7 @@ struct opts{
   bool doHtmlOutput;
   bool doTexOutput;
   bool doROC;
+  bool doUseRingerTestOnStd;
   std::string anaName;
   std::string anaDir;
   unsigned high_resolution_bin;
