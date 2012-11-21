@@ -179,7 +179,7 @@ void D3PDAnalysis::setEtHists(){
   if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
     et_energy_test_map = new std::map<Key_t1,TH1F*>();
     for(unsigned i = 0; i < ds_size;++i){
-      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
+      TH1F *hist = new TH1F( (std::string("test_") + (ds[i])).c_str(), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
       hist->SetBit(TH1::kCanRebin);
       et_energy_test_map->insert(std::make_pair(Key_t1(ds[i]),hist));
     }
@@ -2019,7 +2019,7 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
   if(d3pd == sgn){
     ds_name = "Signal";
     ds = eg_key::SignalFullDs;
-    outputName = "sinal_detailed_truth.html";
+    outputName = "signal_detailed_truth.html";
   } else{
     ds_name = "Background";
     outputName = "background_detailed_truth.html";
