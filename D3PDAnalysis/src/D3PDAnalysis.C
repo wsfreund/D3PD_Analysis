@@ -513,11 +513,11 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
   std::string outLabel = "== Getting Ringer Output for "; 
   if(d3pd==sgn){
     ds = eg_key::Signal; 
-    outLabel += "Signal Dataset";
+    outLabel += "Signal Dataset:";
     if(doTruth) full_ds = eg_key::SignalFullDs;
     if(useTestOnlySgn) doTestOnly = true;
   } else {
-    outLabel += "Background Dataset";
+    outLabel += "Background Dataset:";
     ds = eg_key::Background;
     if(useTestOnlyBkg) doTestOnly = true;
   }

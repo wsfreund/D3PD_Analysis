@@ -77,7 +77,6 @@ void readInputs(int argc, char *argv[], opts &setOpts){
         }
       } else if (std::string(argv[ip]) == "--doTruth") {
         ++ip;
-        SHOW(ip) SHOW(argc)
         if (ip < argc && std::string(argv[ip]).substr(0,2) != "--" ) {
           setOpts.doTruth = atoi(argv[ip++]);
         } else {
