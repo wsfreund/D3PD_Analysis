@@ -176,7 +176,7 @@ void D3PDAnalysis::setEtHists(){
     et_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist));
   }
 
-  if(useTestOnlySgn||(useTestOnlyBkg&&!doUseRingerTestOnStd)){
+  if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
     et_energy_test_map = new std::map<Key_t1,TH1F*>();
     for(unsigned i = 0; i < ds_size;++i){
       TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
@@ -742,7 +742,7 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
       // Fill tranverse energy map:
       et_energy_map->find(Key_t1(ds))->second->Fill(el_et);
-      if(useTestOnlySgn||(useTestOnlyBkg&&!doUseRingerTestOnStd)){
+      if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
         if(isTest)
           et_energy_test_map->find(Key_t1(ds))->second->Fill(el_et);
       }
@@ -813,7 +813,7 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       // If doing signal and using truth info, we need to add full ds:
       if(d3pd == sgn && doTruth){
         et_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
-        if(useTestOnlySgn||(useTestOnlyBkg&&!doUseRingerTestOnStd)){
+        if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
           if(isTest)
             et_energy_test_map->find(Key_t1(full_ds))->second->Fill(el_et);
         }
@@ -1223,8 +1223,8 @@ void D3PDAnalysis::printDetailedTruthEff(){
   std::streamsize oldPres = std::cout.precision(2);
   std::cout.setf(std::ios::fixed,std::ios::floatfield);
   for(size_t i = 0; i < nDs;++i){
-    bool doTestOnly = (useTestOnlySgn&&ds[i]==eg_key::SignalFullDs)||
-      (useTestOnlyBkg&&ds[i]==eg_key::Background&&!doUseRingerTestOnStd);
+    bool doTestOnly = (((useTestOnlySgn&&ds[i]==eg_key::SignalFullDs)||
+      (useTestOnlyBkg&&ds[i]==eg_key::Background))&&!doUseRingerTestOnStd);
     std::cout << "---------- Detailed Truth for " << make_str(ds[i]) << "----------" << std::endl;
     std::cout << "\t\tOffRinger\tOffEgamma" << std::endl;
     std::cout.precision(0);
@@ -1279,7 +1279,7 @@ void D3PDAnalysis::draw(){
 
   // Drawing sequence:
   drawEnergyDistPlots(et_energy_map); outFile->Flush();
-  if(useTestOnlySgn||(useTestOnlyBkg&&!doUseRingerTestOnStd)) drawEnergyDistPlots(et_energy_test_map);
+  if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd) drawEnergyDistPlots(et_energy_test_map);
   if(doTruth) {drawStableParticlesPlots(); outFile->Flush();}
   if(doDetailedTruth) {drawDetailedTruth(); outFile->Flush();}
   drawNeuralOutputPlots(); outFile->Flush();
@@ -2026,8 +2026,8 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
     ds = eg_key::Background;
   }
 
-  bool doTestOnly = (useTestOnlySgn&&ds==eg_key::SignalFullDs)||
-    ((useTestOnlyBkg&&ds==eg_key::Background)&&!doUseRingerTestOnStd);
+  bool doTestOnly = (((useTestOnlySgn&&ds==eg_key::SignalFullDs)||
+    (useTestOnlyBkg&&ds==eg_key::Background))&&!doUseRingerTestOnStd);
   std::ofstream outFile( (ana_name + "_" + outputName).c_str()); // output
   outFile.precision(0);
   outFile.setf(std::ios::fixed,std::ios::floatfield);
