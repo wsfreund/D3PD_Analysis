@@ -725,6 +725,27 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   inputChain->SetBranchAddress("el_ringernn",&nn_output);
   inputChain->SetBranchAddress("el_isEM",&el_isEM);
   
+
+  TTree *outputTree = inputChain->CloneTree(0); // Copy tree into output
+
+  Long64_t nentries = inputChain->GetEntries(); // Loop over entries
+
+  for (Long64_t jentry=0; jentry<nentries;jentry++) {
+    if(!( ((int)100.*jentry/nentries) % 1 )){
+      std::cout << "-- Propagating: " << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
+    }
+    inputChain->GetEntry(jentry);
+    nn_output->clear();
+    for (Int_t index_el=0; index_el < el_n; ++index_el ){
+      // If we arived here, this is a testing particle:
+      std::vector<float> rings = (*ringsVector)[index_el]; // We get copy a from ringsVector
+      normalize(rings,setOpts); // normalize them
+      nn_output->push_back(the_nn->propagate(rings)); // and propagate
+    }
+    // Write:
+    outputTree->Fill();
+  }
+
   // These will hold inputs to isTestCluster:
   void *input1 = 0;
   void *input2 = 0;
@@ -751,26 +772,6 @@ void runNN(const Neural *the_nn,const opts &setOpts){
     }
   }
 
-  TTree *outputTree = inputChain->CloneTree(0); // Copy tree into output
-
-  Long64_t nentries = inputChain->GetEntries(); // Loop over entries
-
-  for (Long64_t jentry=0; jentry<nentries;jentry++) {
-    if(!( ((int)100.*jentry/nentries) % 1 )){
-      std::cout << "-- Propagating: " << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
-    }
-    inputChain->GetEntry(jentry);
-    nn_output->clear();
-    for (Int_t index_el=0; index_el < el_n; ++index_el ){
-      // If we arived here, this is a testing particle:
-      std::vector<float> rings = (*ringsVector)[index_el]; // We get copy a from ringsVector
-      normalize(rings,setOpts); // normalize them
-      nn_output->push_back(the_nn->propagate(rings)); // and propagate
-    }
-    // Write:
-    outputTree->Fill();
-  }
-
   std::cout << "                                                                        \r" << std::flush;
   std::cout << "-- Propagating: Finished!" << std::endl;
 
@@ -779,11 +780,9 @@ void runNN(const Neural *the_nn,const opts &setOpts){
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
       std::cout << "-- Adding test info: " << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
       inputChain->GetEntry(jentry);
-      unsigned non_test_events = 0;
       el_is_testCluster->assign(el_n,0); // clear vector
       for (Int_t index_el=0; index_el < el_n; ++index_el ){
         if(!isTestCluster(setOpts,index_el,input1,input2)){
-          ++non_test_events;
           continue;
         }
         el_is_testCluster->at(index_el) = 1; // flag to tag test cluster

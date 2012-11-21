@@ -522,6 +522,8 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
     if(useTestOnlyBkg) doTestOnly = true;
   }
 
+  std::cout << "Test info available = " << doTestOnly << std::endl;
+
   Long64_t nentries = d3pd->fChain->GetEntriesFast();
   if (debug && nentries>100) nentries = 100;
 
@@ -615,6 +617,8 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
     if(doTruth) full_ds = eg_key::Background;
     if(useTestOnlyBkg) doTestOnly = true;
   }
+
+  std::cout << "Test info available = " << doTestOnly << std::endl;
 
   // Number of entries to read:
   Long64_t nentries = d3pd->fChain->GetEntriesFast();
