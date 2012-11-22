@@ -731,12 +731,14 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         // Overall algorithms efficiencies:
         if(!doForceRingerThres)
           global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
+        // Add ringer global efficiency only on test clusters:
         if(isTest){
           global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassedRinger,i);
-          for(unsigned j = eg_key::Loose; j < req_size; ++j){
-            bool isPassed = (el_nnOutput > ring_req[j]) && isPassedStd;
-            global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassed,j+i*eg_key::Tight);
-          }
+        }
+        // Ringer and standard egamma agreement are on both data:
+        for(unsigned j = eg_key::Loose; j < req_size; ++j){
+          bool isPassed = (el_nnOutput > ring_req[j]) && isPassedStd;
+          global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassed,j+i*eg_key::Tight);
         }
       }
 

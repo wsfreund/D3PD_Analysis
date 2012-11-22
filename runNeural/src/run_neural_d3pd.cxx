@@ -778,7 +778,9 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   if(setOpts.doTestOnly){ // Add 2 branches containing test information:
     TBranch *b_el_is_testCluster = outputTree->Branch("el_is_testCluster",&el_is_testCluster);
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
-      std::cout << "-- Adding test info: " << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
+      if(!( ((int)100.*jentry/nentries) % 1 )){
+        std::cout << "-- Adding test info: " << (int)100.*jentry/nentries << "\% Completed \r" << std::flush;
+      }
       inputChain->GetEntry(jentry);
       el_is_testCluster->assign(el_n,0); // clear vector
       for (Int_t index_el=0; index_el < el_n; ++index_el ){
