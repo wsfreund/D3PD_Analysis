@@ -341,9 +341,9 @@ void help() {
             << "       ./runNeural --input <listFileName> --options  ... \n"
             << "  --options may be one from (> marks default option)/[available options]:\n"
             << "    --norm [>\"norm1\",\"mapstd\" <mean_trn_ds> <std_trn_ds>]\n"
-            << "      Choose the type of normalization pre-processing (it must be the same used on training)."
+            << "      Choose the type of normalization pre-processing (it must be the same used on training).\n"
             << "    --outputFile >\"newNet<date>.<time>.D3PD.root\"\n"
-            << "      Name of output D3PD file."
+            << "      Name of output D3PD file.\n"
             << "    --fileNN [char] >\"net.py\"\n"
             << "      Name of Neural Network file, containing bias, weights and so on (created using net2py.m or d3pdexport.m).\n"
             << "    --doTestOnly [bool] >0 \n"
@@ -775,7 +775,7 @@ void runNN(const Neural *the_nn,const opts &setOpts){
   std::cout << "                                                                        \r" << std::flush;
   std::cout << "-- Propagating: Finished!" << std::endl;
 
-  if(setOpts.doTestOnly){ // Add 2 branches containing test information:
+  if(setOpts.doTestOnly){ // Add branch containing test information:
     TBranch *b_el_is_testCluster = outputTree->Branch("el_is_testCluster",&el_is_testCluster);
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
       if(!( ((int)100.*jentry/nentries) % 1 )){
