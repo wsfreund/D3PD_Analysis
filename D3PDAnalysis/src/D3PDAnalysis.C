@@ -1485,7 +1485,7 @@ void D3PDAnalysis::drawStableParticlesPlots(){
 //========================================================================
 //========================================================================
 //========================================================================
-void D3PDAnalysis::drawDetailedTruth(){ // TODO Add on comparison on same plot, but drawn side to side, moving the hist bars
+void D3PDAnalysis::drawDetailedTruth(){ // TODO Add on comparison on same plot, but drawn side by side, moving the hist bars
 
   gSystem->cd(ana_place.c_str()); // Get back to base analysis dir
   gSystem->cd(particlesDirName.c_str()); // Get inside it
