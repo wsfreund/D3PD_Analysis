@@ -2,6 +2,7 @@ include $(ROOTSYS)/etc/Makefile.arch
 ROOTLIBS := $(shell root-config --libs) 
 DEBUG := 0
 INCFLAGS := $(shell root-config --cflags) -DDEBUG=$(DEBUG)
+#INCFLAGS := -pthread -m64 -DDEBUG=${DEBUG} -I/Users/wsfreund/root/include
 
 SPACE :=
 SPACE +=
@@ -23,7 +24,8 @@ MV := mv
 
 directories := $(out_dir_name) $(out_inc_dir_name) $(lib_dir_name) $(bin_dir_name) $(matlab_dir_name)
 
-GRL_DIR := GoodRunLists
+# Uncomment to make GoodRunLists
+#GRL_DIR := GoodRunLists
 GRL_LIB_NAME := GRL
 GRL_LIB := $(lib_dir_name)/lib$(GRL_LIB_NAME).so
 
@@ -56,7 +58,7 @@ endef
 define add_module
   $(eval $(call define_module_vars,$1,$2,$3,$4,$5))
   $(eval $(call make_library,$1,$2,$4))
-  ifneq ($5,)
+  ifeq ($5,)
     $(eval $(call make_executable,$1,$4,$5))
   endif
 endef
@@ -139,6 +141,8 @@ objects      :=
 includes     :=
 matlab_files :=
 
+
+# First rule is default rule
 all:
 
 include $(addsuffix /module.mk,$(modules))
@@ -179,6 +183,7 @@ directories:
 clean:
 	@$(RM) -r $(objects) $(programs) $(libraries) $(out_inc_dir_name)
 
+ifdef GRL_DIR
 .PHONY: distclean
 distclean: clean
 	@$(RM) $(out_dir_name)/*.cpp $(out_dir_name)/*.h $(out_dir_name)/*.cxx
@@ -186,6 +191,14 @@ distclean: clean
 	@$(RM) $(lib_dir_name)/*
 	@$(RM) $(bin_dir_name)/*
 	@$(MAKE) --directory=$(GRL_DIR) clean
+else
+.PHONY: distclean
+distclean: clean
+	@$(RM) $(out_dir_name)/*.cpp $(out_dir_name)/*.h $(out_dir_name)/*.cxx
+	@$(RM) $(matlab_dir_name)/*
+	@$(RM) $(lib_dir_name)/*
+	@$(RM) $(bin_dir_name)/*
+endif
 
 .PHONY: veryclean
 veryclean: distclean

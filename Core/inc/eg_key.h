@@ -416,8 +416,8 @@ namespace eg_key{
   }
 
   template<class T1, class T2, class T3, class T4, class T5, class T6>
-  inline unsigned update_key(T1 var1=Unknown, T2 var2=Unknown,T3 var3=Unknown,T4 var4=Unknown,T5 var5=Unknown,
-      T6 var6=Unknown)
+  inline unsigned update_key(T1 var1, T2 var2,T3 var3,T4 var4,T5 var5,
+      T6 var6)
   throw(std::invalid_argument){
     const std::type_info *var_type[NTypes] = {&typeid(T1),&typeid(T2), 
       &typeid(T3), &typeid(T4), &typeid(T5), &typeid(T6)};

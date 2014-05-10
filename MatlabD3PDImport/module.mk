@@ -27,7 +27,7 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
   MATD3PD_DIRM     := $(MATD3PD_DIRBASE)/$(matlab_dir_name)
 
   MATD3PD_DL_DEP := $(CORE_DL)
-  MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lCint -lTree -lRIO
+  MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
 
   # Extra variables
   MATD3PD_EXTRACFLAGS := $(subst -fPIC,,\
@@ -65,7 +65,8 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
 		@echo "**"
 		@echo "** Creating matlab mex $@"
 		@echo "**"
-		$(MEX) -cxx $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
+		@#$(MEX) -n -cxx -v INCFLAGS='$(INCFLAGS)' CFLAGS='^$(CFLAGS)' LDFLAGS='$(LDFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
+		$(MEX) -cxx -v CXXFLAGS='$(INCFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 
 
 endif
