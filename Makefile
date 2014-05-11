@@ -133,7 +133,7 @@ endef
 # Collect information from each module in these four variables.
 # Initialize them here as simple variables.
 
-modules      := Core $(subst /module.mk,,$(shell find . -name module.mk))
+modules      := $(subst /module.mk,,$(shell find . -name module.mk))
 programs     := 
 libraries    :=
 sources      :=

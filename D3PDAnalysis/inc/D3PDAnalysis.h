@@ -234,8 +234,14 @@ private:
   Float_t pid_lb[pid_size];
   Float_t pid_ub[pid_size];
   Float_t pid_thres[pid_size]; 
+
+#if __cplusplus >= 201103L
   constexpr static const Float_t crack_lb = 1.4;
   constexpr static const Float_t crack_ub = 1.6;
+#else
+  static const Float_t crack_lb = 1.4;
+  static const Float_t crack_ub = 1.6;
+#endif
 
   std::vector<unsigned> stdeg_req;  // Keep same logic as for req
   std::vector<float>  ring_req;  // Keep same logic as for req
