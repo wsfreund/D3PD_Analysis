@@ -164,6 +164,8 @@ endif
 .PHONY: programs
 programs: $(programs) includes
 
+.PHONY: D3PDAnalysis MatlabRingerTrain MatlabD3PDImport RunNeural
+D3PDAnalysis MatlabRingerTrain MatlabD3PDImport RunNeural: Core
 
 
 .PHONY: libraries
