@@ -144,6 +144,13 @@ matlab_files :=
 # First rule is default rule
 all:
 
+# Define all modules names:
+include $(addsuffix /module.mk,$(modules))
+
+# All modules names are declared:
+override all_names_defined := defined
+
+# Define all modules rules:
 include $(addsuffix /module.mk,$(modules))
 
 .PHONY: all

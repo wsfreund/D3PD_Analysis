@@ -1,10 +1,14 @@
 # Test if Matlab is installed:
 ifneq ($(findstring matlab,$(shell which matlab)),)
 
+ifndef all_names_defined
+
   MATD3PD_MODULE            := MATD3PD_
   MATD3PD_MODULENAME        := MatlabD3PDImport
   MATD3PD_LIBNAME           := matd3pd
   MATD3PD_DIRBASE           := $(MATD3PD_MODULENAME)
+
+else
 
   # If not cleaning:
   ifneq ($(findstring found,$(patsubst clean,found,$(patsubst distclean,found,$(patsubst veryclean,found,$(MAKECMDGOALS))))),found)
@@ -26,8 +30,8 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
   MATD3PD_DIRI     := $(MATD3PD_DIRBASE)/$(include_dir_name)
   MATD3PD_DIRM     := $(MATD3PD_DIRBASE)/$(matlab_dir_name)
 
-  MATD3PD_DL_DEP = $(CORE_DL)
-  MATD3PD_DL_FLAGS = -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
+  MATD3PD_DL_DEP := $(CORE_DL)
+  MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
 
   # Extra variables
   MATD3PD_EXTRACFLAGS := $(subst -fPIC,,\
@@ -68,5 +72,6 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
 		@#$(MEX) -n -cxx -v INCFLAGS='$(INCFLAGS)' CFLAGS='^$(CFLAGS)' LDFLAGS='$(LDFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 		$(MEX) -cxx CXXFLAGS='$(INCFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 
+endif
 
 endif

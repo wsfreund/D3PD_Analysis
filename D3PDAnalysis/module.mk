@@ -1,12 +1,16 @@
+ifndef all_names_defined
+
 D3PD_MODULE            := D3PD_
 D3PD_MODULENAME        := D3PDAnalysis
 D3PD_PROGNAME          := run_d3pd_analysis
 D3PD_LIBNAME           := anad3pd
 D3PD_DIRBASE           := $(D3PD_MODULENAME)
 
+else
+
 # Extra variables
-D3PD_DL_DEP = $(out_dir_name)/RootDictionary.o $(CORE_DL)
-D3PD_DL_FLAGS = $(ROOTLIBS)
+D3PD_DL_DEP := $(out_dir_name)/RootDictionary.o $(CORE_DL)
+D3PD_DL_FLAGS := $(ROOTLIBS)
 
 D3PD_DP_DEP := $(CORE_DL)
 D3PD_DP_FLAGS := $(ROOTLIBS)
@@ -31,4 +35,6 @@ $(out_dir_name)/RootDictionary.o: $(out_dir_name)/RootDictionary.cpp
 	@echo "** Compiling $@" 
 	@echo "**"
 	$(CXX) $(CFLAGS) -c $(INCFLAGS) $< -o $@ $(D3PD_EXTRACFLAGS) 
+
+endif
 
