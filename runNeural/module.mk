@@ -1,5 +1,5 @@
 RUN_NEURAL_MODULE            := RUN_NEURAL_
-RUN_NEURAL_MODULENAME        := runNeural
+RUN_NEURAL_MODULENAME        := RunNeural
 RUN_NEURAL_PROGNAME          := run_neural_d3pd
 RUN_NEURAL_LIBNAME           := neurald3pd
 RUN_NEURAL_DIRBASE           := $(RUN_NEURAL_MODULENAME)
