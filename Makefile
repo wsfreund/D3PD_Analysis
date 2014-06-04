@@ -141,7 +141,6 @@ objects      :=
 includes     :=
 matlab_files :=
 
-
 # First rule is default rule
 all:
 
@@ -149,6 +148,7 @@ include $(addsuffix /module.mk,$(modules))
 
 .PHONY: all
 all: directories includes $(programs) $(libraries) matlab
+
 
 # Special rule for GoodRunList make
 ifdef GRL_DIR
@@ -163,10 +163,6 @@ endif
 
 .PHONY: programs
 programs: $(programs) includes
-
-.PHONY: D3PDAnalysis MatlabRingerTrain MatlabD3PDImport RunNeural
-D3PDAnalysis MatlabRingerTrain MatlabD3PDImport RunNeural: Core
-
 
 .PHONY: libraries
 libraries: $(libraries) includes directories
