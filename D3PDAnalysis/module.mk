@@ -5,8 +5,8 @@ D3PD_LIBNAME           := anad3pd
 D3PD_DIRBASE           := $(D3PD_MODULENAME)
 
 # Extra variables
-D3PD_DL_DEP := $(out_dir_name)/RootDictionary.o $(CORE_DL)
-D3PD_DL_FLAGS := $(ROOTLIBS)
+D3PD_DL_DEP = $(out_dir_name)/RootDictionary.o $(CORE_DL)
+D3PD_DL_FLAGS = $(ROOTLIBS)
 
 D3PD_DP_DEP := $(CORE_DL)
 D3PD_DP_FLAGS := $(ROOTLIBS)

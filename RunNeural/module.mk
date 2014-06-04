@@ -5,8 +5,8 @@ RUN_NEURAL_LIBNAME           := neurald3pd
 RUN_NEURAL_DIRBASE           := $(RUN_NEURAL_MODULENAME)
 
 # Extra variables
-RUN_NEURAL_DL_DEP := $(out_dir_name)/RootDictionary.o
-RUN_NEURAL_DL_FLAGS := $(ROOTLIBS)
+RUN_NEURAL_DL_DEP = $(out_dir_name)/RootDictionary.o
+RUN_NEURAL_DL_FLAGS = $(ROOTLIBS)
 
 RUN_NEURAL_DP_DEP := $(CORE_DL)
 RUN_NEURAL_DP_FLAGS := $(ROOTLIBS)

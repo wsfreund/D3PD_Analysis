@@ -26,8 +26,8 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
   MATD3PD_DIRI     := $(MATD3PD_DIRBASE)/$(include_dir_name)
   MATD3PD_DIRM     := $(MATD3PD_DIRBASE)/$(matlab_dir_name)
 
-  MATD3PD_DL_DEP := $(CORE_DL)
-  MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
+  MATD3PD_DL_DEP = $(CORE_DL)
+  MATD3PD_DL_FLAGS = -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
 
   # Extra variables
   MATD3PD_EXTRACFLAGS := $(subst -fPIC,,\
