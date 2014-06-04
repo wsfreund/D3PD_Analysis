@@ -6,6 +6,9 @@ D3PD_PROGNAME          := run_d3pd_analysis
 D3PD_LIBNAME           := anad3pd
 D3PD_DIRBASE           := $(D3PD_MODULENAME)
 
+$(eval $(call define_module_vars,$(D3PD_MODULE),$(D3PD_MODULENAME),$(D3PD_DIRBASE),$(D3PD_LIBNAME),$(D3PD_PROGNAME)))
+$(info Defined $(D3PD_MODULENAME) names!)
+
 else
 
 # Extra variables
@@ -19,8 +22,8 @@ ifdef GRL_DIR
   D3PD_DP_DEP += $(GRL_LIB)
 endif
 
-# Add module
-$(eval $(call add_module,$(D3PD_MODULE),$(D3PD_MODULENAME),$(D3PD_DIRBASE),$(D3PD_LIBNAME),$(D3PD_PROGNAME)))
+# Add module rules
+$(eval $(call define_module_rules,$(D3PD_MODULE),$(D3PD_MODULENAME),$(D3PD_DIRBASE),$(D3PD_LIBNAME),$(D3PD_PROGNAME)))
 
 # Extra rules
 $(out_dir_name)/RootDictionary.cpp: $(D3PD_DIRBASE)/$(include_dir_name)/LinkDef.h
@@ -35,6 +38,8 @@ $(out_dir_name)/RootDictionary.o: $(out_dir_name)/RootDictionary.cpp
 	@echo "** Compiling $@" 
 	@echo "**"
 	$(CXX) $(CFLAGS) -c $(INCFLAGS) $< -o $@ $(D3PD_EXTRACFLAGS) 
+
+$(info Defined $(D3PD_MODULENAME) rules!)
 
 endif
 

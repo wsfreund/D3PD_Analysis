@@ -54,15 +54,6 @@ define filter_libraries
 $(subst .so,,$(patsubst $(lib_dir_name)/lib%,-l%,$(filter lib%.so,$1))) $(filter-out lib%.so,$1)
 endef
 
-# $(call add_module,module:1,module_name:2,dir_base:3,libname:4,progname:5)
-define add_module
-  $(eval $(call define_module_vars,$1,$2,$3,$4,$5))
-  $(eval $(call make_library,$1,$2,$4))
-  ifeq ($5,)
-    $(eval $(call make_executable,$1,$4,$5))
-  endif
-endef
-
 # $(call define_module_vars,module:1,module_name:2,dirbase:3,libname:4,progname:5)
 define define_module_vars
   $1LIBNAME     = $4
@@ -90,6 +81,13 @@ define define_module_vars
   objects   += $$($1DO)
 endef
 
+# $(call define_module_rules,module:1,module_name:2,dir_base:3,libname:4,progname:5)
+define define_module_rules
+  $(eval $(call make_library,$1,$2,$4))
+  ifeq ($5,)
+    $(eval $(call make_executable,$1,$4,$5))
+  endif
+endef
 
 # $(call make_library,module:1,module_name:2,libname:3)
 define make_library
@@ -126,7 +124,7 @@ $$($1DP): $$($1DL) $(out_dir_name)/$3.o $$($1DP_DEP)
 	@echo "**"
 	@echo "** Generating executable $$@"
 	@echo "**"
-	$(CXX) $(CFLAGS) $$($1EXTRACFLAGS) $$($1DP_FLAGS) $$(call filter_libraries,$$^) $(OutPutOpt) $$@
+	$(CXX) $(CFLAGS) -L$(lib_dir_name) $$($1EXTRACFLAGS) $$($1DP_FLAGS) $$(call filter_libraries,$$^) $(OutPutOpt) $$@
 endef
 
 
@@ -145,12 +143,15 @@ matlab_files :=
 all:
 
 # Define all modules names:
+$(info Defining all modules names...)
 include $(addsuffix /module.mk,$(modules))
 
+$(info Defining all_modules names...)
 # All modules names are declared:
-override all_names_defined := defined
+all_names_defined := defined
 
 # Define all modules rules:
+$(info Defining all modules rules...)
 include $(addsuffix /module.mk,$(modules))
 
 .PHONY: all
@@ -188,27 +189,27 @@ directories:
 
 .PHONY: clean
 clean:
-	@$(RM) -r $(objects) $(programs) $(libraries) $(out_inc_dir_name)
+	$(RM) -r $(objects) $(programs) $(libraries) $(out_inc_dir_name)
 
 ifdef GRL_DIR
 .PHONY: distclean
 distclean: clean
-	@$(RM) $(out_dir_name)/*.cpp $(out_dir_name)/*.h $(out_dir_name)/*.cxx
-	@$(RM) $(matlab_dir_name)/*
-	@$(RM) $(lib_dir_name)/*
-	@$(RM) $(bin_dir_name)/*
+	$(RM) $(out_dir_name)/*.cpp $(out_dir_name)/*.h $(out_dir_name)/*.cxx
+	$(RM) $(matlab_dir_name)/*
+	$(RM) $(lib_dir_name)/*
+	$(RM) $(bin_dir_name)/*
 	@$(MAKE) --directory=$(GRL_DIR) clean
 else
 .PHONY: distclean
 distclean: clean
-	@$(RM) $(out_dir_name)/*.cpp $(out_dir_name)/*.h $(out_dir_name)/*.cxx
-	@$(RM) $(matlab_dir_name)/*
-	@$(RM) $(lib_dir_name)/*
-	@$(RM) $(bin_dir_name)/*
+	$(RM) $(out_dir_name)/*.cpp $(out_dir_name)/*.h $(out_dir_name)/*.cxx
+	$(RM) $(matlab_dir_name)/*
+	$(RM) $(lib_dir_name)/*
+	$(RM) $(bin_dir_name)/*
 endif
 
 .PHONY: veryclean
 veryclean: distclean
-	@$(RM) -r $(directories)
+	$(RM) -r $(directories)
 
 # It was necessary to change matlab libfreetype to ln -s /usr/X11/lib/libfreetype.6.dylib  $MATLABPATH/bin/lib/libfreetype.6.dylib

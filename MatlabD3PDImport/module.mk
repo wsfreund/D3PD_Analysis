@@ -8,8 +8,6 @@ ifndef all_names_defined
   MATD3PD_LIBNAME           := matd3pd
   MATD3PD_DIRBASE           := $(MATD3PD_MODULENAME)
 
-else
-
   # If not cleaning:
   ifneq ($(findstring found,$(patsubst clean,found,$(patsubst distclean,found,$(patsubst veryclean,found,$(MAKECMDGOALS))))),found)
     $(shell mkdir -p $(out_dir_name))
@@ -30,6 +28,22 @@ else
   MATD3PD_DIRI     := $(MATD3PD_DIRBASE)/$(include_dir_name)
   MATD3PD_DIRM     := $(MATD3PD_DIRBASE)/$(matlab_dir_name)
 
+  MATD3PD_DL := $(matlab_out_dir_name)/$(MATD3PD_LIBNAME).$(MEXEXT)
+  MATD3PD_DS := $(wildcard $(MATD3PD_DIRS)/*.c[xp][xp]) $(wildcard $(MATD3PD_DIRS)/*.C)
+  MATD3PD_DO := $(call source_to_object,$(MATD3PD_DS),$(MATD3PD_DIRS))
+  MATD3PD_DI := $(wildcard $(MATD3PD_DIRI)/*.h)
+  MATD3PD_DM := $(filter %.m,$(wildcard $(MATD3PD_DIRM)/*))
+
+  objects      += $(MATD3PD_DO)
+  includes     += $(MATD3PD_DI)
+  sources      += $(MATD3PD_DS)
+  libraries    += $(MATD3PD_DL)
+  matlab_files += $(MATD3PD_DM) 
+
+$(info Defined $(MATD3PD_MODULENAME) names!)
+
+else
+
   MATD3PD_DL_DEP := $(CORE_DL)
   MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
 
@@ -46,18 +60,6 @@ else
     MATD3PD_DL_DEP += $(GRL_LIB)
   endif
 
-  MATD3PD_DL := $(matlab_out_dir_name)/$(MATD3PD_LIBNAME).$(MEXEXT)
-  MATD3PD_DS := $(wildcard $(MATD3PD_DIRS)/*.c[xp][xp]) $(wildcard $(MATD3PD_DIRS)/*.C)
-  MATD3PD_DO := $(call source_to_object,$(MATD3PD_DS),$(MATD3PD_DIRS))
-  MATD3PD_DI := $(wildcard $(MATD3PD_DIRI)/*.h)
-  MATD3PD_DM := $(filter %.m,$(wildcard $(MATD3PD_DIRM)/*))
-
-  objects      += $(MATD3PD_DO)
-  includes     += $(MATD3PD_DI)
-  sources      += $(MATD3PD_DS)
-  libraries    += $(MATD3PD_DL)
-  matlab_files += $(MATD3PD_DM) 
-
   $(out_dir_name)/load_d3pd_dict.cpp: $(MATD3PD_DIRBASE)/$(include_dir_name)/myLinkDef.h
 		@echo "**"
 		@echo "** Creating Root dictionary"
@@ -71,6 +73,8 @@ else
 		@echo "**"
 		@#$(MEX) -n -cxx -v INCFLAGS='$(INCFLAGS)' CFLAGS='^$(CFLAGS)' LDFLAGS='$(LDFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 		$(MEX) -cxx CXXFLAGS='$(INCFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
+
+$(info Defined $(MATD3PD_MODULENAME) rules!)
 
 endif
 
