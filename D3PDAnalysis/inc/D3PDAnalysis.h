@@ -89,22 +89,22 @@ public:
   void set_alg_special(const std::vector<std::string> &vec);
   void set_yAxis_special(const std::vector<std::string> &vec);
   void set_var_units(const std::vector<std::string> &vec);
-  void set_var_lb(const Float_t vec[]); 
-  void set_var_ub(const Float_t vec[]);
-  void set_pid_lb(const Float_t vec[]);
+  void set_var_lb(const std::vector<Float_t>& vec); 
+  void set_var_ub(const std::vector<Float_t>& vec);
+  void set_pid_lb(const std::vector<Float_t>& vec);
   void set_pid_ub(const std::vector<Float_t>& vec);
   void set_pid_thres(const std::vector<Float_t>& vec);
   void set_stdeg_req(const std::vector<unsigned>& vec); 
   void set_ring_req(const std::vector<Float_t>& vec); 
   void set_neuralColors(const std::vector<std::vector<Color_t> >& vec); 
   void set_datasetColor(const std::vector<Color_t>& vec); 
-  void set_reqEffColor(const Color_t vec[]); 
-  void set_reqEffMarkerStyle(const Style_t vec[]);
-  void set_compEffColor(const Color_t vec[]);
-  void set_compEffMarkerStyle(const Style_t vec[]);
+  void set_reqEffColor(const std::vector<Color_t>& vec); 
+  void set_reqEffMarkerStyle(const std::vector<Style_t>& vec);
+  void set_compEffColor(const std::vector<Color_t>& vec);
+  void set_compEffMarkerStyle(const std::vector<Style_t>& vec);
   void set_rocRingColor(const Color_t color); 
-  void set_rocEgColor(const Color_t vec[]); 
-  void set_rocEgMarker(const Style_t vec[]); 
+  void set_rocEgColor(const std::vector<Color_t>& vec); 
+  void set_rocEgMarker(const std::vector<Style_t>& vec); 
   void set_signalPdgId(const Int_t);
   void set_signalMotherPdgId(const Int_t);
 
@@ -580,32 +580,32 @@ void D3PDAnalysis::set_var_units(const std::vector<std::string> &vec){
 }
 
 inline
-void D3PDAnalysis::set_var_lb(const Float_t vec[]) {
-  if(SIZE(vec) == var_size) for(unsigned i = 0; i < var_size; ++i) var_lb[i] = vec[i];
+void D3PDAnalysis::set_var_lb(const std::vector<Float_t> &vec) {
+  if(vec.size() == var_size) for(unsigned i = 0; i < var_size; ++i) var_lb[i] = vec[i];
   else std::cout << "var_lb must have size " << var_size << std::endl;
 }
 
 inline
-void D3PDAnalysis::set_var_ub(const Float_t vec[]){
-  if(SIZE(vec) == var_size) for(unsigned i = 0; i < var_size; ++i) var_ub[i] = vec[i];
+void D3PDAnalysis::set_var_ub(const std::vector<Float_t> &vec){
+  if(vec.size() == var_size) for(unsigned i = 0; i < var_size; ++i) var_ub[i] = vec[i];
   else std::cout << "var_ub must have size " << var_size << std::endl;
 }
 
 inline
-void D3PDAnalysis::set_pid_lb(const Float_t vec[]){
-  if(SIZE(vec) == pid_size) for(unsigned i = 0; i < pid_size; ++i) pid_lb[i] = vec[i];
+void D3PDAnalysis::set_pid_lb(const std::vector<Float_t> &vec){
+  if(vec.size() == pid_size) for(unsigned i = 0; i < pid_size; ++i) pid_lb[i] = vec[i];
   else std::cout << "pid_lb must have size " << pid_size << std::endl;
 }
 
 inline
 void D3PDAnalysis::set_pid_ub(const std::vector<Float_t>& vec){
-  if(SIZE(vec) == pid_size) for(unsigned i = 0; i < pid_size; ++i) pid_ub[i] = vec[i];
+  if(vec.size() == pid_size) for(unsigned i = 0; i < pid_size; ++i) pid_ub[i] = vec[i];
   else std::cout << "pid_ub must have size " << pid_size << std::endl;
 }
 
 inline
 void D3PDAnalysis::set_pid_thres(const std::vector<Float_t>& vec){
-  if(SIZE(vec) == pid_size) for(unsigned i = 0; i < pid_size; ++i) pid_thres[i] = vec[i];
+  if(vec.size() == pid_size) for(unsigned i = 0; i < pid_size; ++i) pid_thres[i] = vec[i];
   else std::cout << "pid_thres must have size " << pid_size << std::endl;
 }
 
@@ -631,26 +631,26 @@ void D3PDAnalysis::set_datasetColor(const std::vector<Color_t>& vec) {
 }
 
 inline
-void D3PDAnalysis::set_reqEffColor(const Color_t vec[]) {
-  if(SIZE(vec) == req_size) for(unsigned i = 0; i < req_size; ++i) reqEffColor[i] = vec[i];
+void D3PDAnalysis::set_reqEffColor(const std::vector<Color_t>& vec) {
+  if(vec.size() == req_size) for(unsigned i = 0; i < req_size; ++i) reqEffColor[i] = vec[i];
   else std::cout << "reqEffColor must have size " << req_size << std::endl; 
 }
 
 inline
-void D3PDAnalysis::set_reqEffMarkerStyle(const Style_t vec[]){
-  if(SIZE(vec) == req_size) for(unsigned i = 0; i < req_size; ++i) reqEffMarkerStyle[i] = vec[i];
+void D3PDAnalysis::set_reqEffMarkerStyle(const std::vector<Style_t>& vec){
+  if(vec.size() == req_size) for(unsigned i = 0; i < req_size; ++i) reqEffMarkerStyle[i] = vec[i];
   else std::cout << "reqEffMarkerStyle must have size " << req_size << std::endl; 
 }
 
 inline
-void D3PDAnalysis::set_compEffColor(const Color_t vec[]){
-  if(SIZE(vec) == nDs) for(unsigned i = 0; i < nDs; ++i) compEffColor[i] = vec[i];
+void D3PDAnalysis::set_compEffColor(const std::vector<Color_t>& vec){
+  if(vec.size() == nDs) for(unsigned i = 0; i < nDs; ++i) compEffColor[i] = vec[i];
   else std::cout << "compEffColor must have size " << nDs << std::endl; 
 }
 
 inline
-void D3PDAnalysis::set_compEffMarkerStyle(const Style_t vec[]){
-  if(SIZE(vec) == nDs) for(unsigned i = 0; i < nDs; ++i) compEffMarkerStyle[i] = vec[i];
+void D3PDAnalysis::set_compEffMarkerStyle(const std::vector<Style_t> &vec){
+  if(vec.size() == nDs) for(unsigned i = 0; i < nDs; ++i) compEffMarkerStyle[i] = vec[i];
   else std::cout << "compEffMarkerStyle must have size " << nDs << std::endl; 
 }
 
@@ -660,17 +660,17 @@ void D3PDAnalysis::set_rocRingColor(const Color_t color) {
 }
 
 inline
-void D3PDAnalysis::set_rocEgColor(const Color_t vec[]) 
+void D3PDAnalysis::set_rocEgColor(const std::vector<Color_t>& vec) 
 {
-if(SIZE(vec) == req_size-1) for(unsigned i = 0; i < req_size-1; ++i) rocEgColor[i] = vec[i];
-  else std::cout << "rocEgColor must have size " << req_size-1 << std::endl; 
+if(vec.size() == req_size) for(unsigned i = 0; i < req_size; ++i) rocEgColor[i] = vec[i];
+  else std::cout << "rocEgColor must have size " << req_size << std::endl; 
 }
 
 inline
-void D3PDAnalysis::set_rocEgMarker(const Style_t vec[]) 
+void D3PDAnalysis::set_rocEgMarker(const std::vector<Style_t>& vec) 
 {
-if(SIZE(vec) == req_size-1) for(unsigned i = 0; i < req_size-1; ++i) rocEgMarker[i] = vec[i];
-    else std::cout << "rocEgMarker must have size " << req_size-1 << std::endl; 
+if(vec.size() == req_size) for(unsigned i = 0; i < req_size; ++i) rocEgMarker[i] = vec[i];
+    else std::cout << "rocEgMarker must have size " << req_size << std::endl; // It was req_size -1
 }
 
 inline

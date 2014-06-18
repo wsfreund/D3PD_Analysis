@@ -15,7 +15,6 @@ CORE_DL_FLAGS := -L$(shell root-config --libdir) -lCore -lMathCore -lTree -lRIO
 
 # Add module rules
 $(eval $(call define_module_rules,$(CORE_MODULE),$(CORE_MODULENAME),$(CORE_DIRBASE),$(CORE_LIBNAME),$(CORE_PROGNAME)))
-
 $(info Defined $(CORE_MODULENAME) rules!)
 
 endif

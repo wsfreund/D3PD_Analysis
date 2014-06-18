@@ -68,6 +68,7 @@ UInt_t getRingSize(TChain *rootChain)
       return ringSize;
     }
   }
+  return 0;
 }
 
 

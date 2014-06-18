@@ -1,4 +1,9 @@
-include $(ROOTSYS)/etc/Makefile.arch
+include $(shell root-config --etcdir)/Makefile.arch
+#CC := $(shell root-config --cc)
+#CXX := $(shell root-config --cxx)
+#LD := $(shell root-config --ld)
+#OutPutOpt := -o
+
 ROOTLIBS := $(shell root-config --libs) 
 DEBUG := 0
 INCFLAGS := $(shell root-config --cflags) -DDEBUG=$(DEBUG)
