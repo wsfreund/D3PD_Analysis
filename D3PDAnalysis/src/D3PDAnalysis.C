@@ -172,7 +172,12 @@ void D3PDAnalysis::setEtHists(){
 
   for(unsigned i = 0; i < ds_size;++i){
     TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,1);
+    // Root 6 way to set rebinable axis: 
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
+    hist->GetXaxis()->SetCanExtend(kTRUE);
+#else
     hist->SetBit(TH1::kCanRebin);
+#endif
     et_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist));
   }
 

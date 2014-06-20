@@ -4,13 +4,18 @@ include $(shell root-config --etcdir)/Makefile.arch
 #LD := $(shell root-config --ld)
 #OutPutOpt := -o
 
-ROOTLIBS := $(shell root-config --libs) 
-DEBUG := 0
-INCFLAGS := $(shell root-config --cflags) -DDEBUG=$(DEBUG)
 #INCFLAGS := -pthread -m64 -DDEBUG=${DEBUG} -I/Users/wsfreund/root/include
 
 SPACE :=
 SPACE +=
+#ROOT_VERSION_TEXT = $(subst ., ,$(subst /, ,$(shell root-config --version))) 
+#ROOT_VERSION = $(shell echo "$(word 1,$(ROOT_VERSION_TEXT)) + 0.01 * $(word 2,$(ROOT_VERSION_TEXT)) \
+#							 + 0.0001 * $(word 3,$(ROOT_VERSION_TEXT))" | bc -l )
+#$(info ROOT Version is: $(ROOT_VERSION))
+
+ROOTLIBS := $(shell root-config --libs) 
+DEBUG := 0
+INCFLAGS := $(shell root-config --cflags) -DDEBUG=$(DEBUG) 
 
 include_dir_name := inc
 src_dir_name := src

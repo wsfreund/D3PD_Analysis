@@ -48,9 +48,9 @@ else
   MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
 
   # Extra variables
-  MATD3PD_EXTRACFLAGS := $(subst -fPIC,,\
-      $(subst -Wall,,\
-      $(subst -pthread,,$(CFLAGS))))
+  #MATD3PD_EXTRACFLAGS := $(subst -fPIC,,\
+  #    $(subst -Wall,,\
+  #    $(subst -pthread,,$(CFLAGS))))
 
   #MATD3PD_INCFLAGS    := -I$(out_inc_dir_name) -I$(shell root-config --incdir)
 

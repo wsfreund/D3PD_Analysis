@@ -32,6 +32,7 @@
 #include "TSystem.h"
 #include "TVirtualPad.h"
 #include "TGraphAsymmErrors.h"
+#include "RVersion.h"
 
 class D3PDAnalysis 
 {
