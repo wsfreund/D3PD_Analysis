@@ -52,7 +52,7 @@ else
       $(subst -Wall,,\
       $(subst -pthread,,$(CFLAGS))))
 
-  MATD3PD_INCFLAGS    := -I$(out_inc_dir_name) -I$(shell root-config --incdir)
+  #MATD3PD_INCFLAGS    := -I$(out_inc_dir_name) -I$(shell root-config --incdir)
 
 
   ifdef GRL_DIR
@@ -72,7 +72,7 @@ else
 		@echo "** Creating matlab mex $@"
 		@echo "**"
 		@#$(MEX) -n -cxx -v INCFLAGS='$(INCFLAGS)' CFLAGS='^$(CFLAGS)' LDFLAGS='$(LDFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
-		$(MEX) -cxx CXXFLAGS='$(INCFLAGS) $(MATD3PD_INCFLAGS)' $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
+		$(MEX) -cxx CXXFLAGS='$(INCFLAGS) $(CFLAGS)' $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 		@#$(MEX) -v CXXFLAGS='$(INCFLAGS) $(MATLAB_INCFLAGS)' $(MATD3PD_EXTRACFLAGS) LDFLAGS='$(MATD3PD_DL_FLAGS) $(MATD3PD_DL_DEP)' $(OutPutOpt) $@ $(call filter_libraries,$^) 
 
 $(info Defined $(MATD3PD_MODULENAME) rules!)
