@@ -3,18 +3,26 @@ ifneq ($(findstring matlab,$(shell which matlab)),)
 
 ifndef all_names_defined
 
+
   MATD3PD_MODULE            := MATD3PD_
   MATD3PD_MODULENAME        := MatlabD3PDImport
   MATD3PD_LIBNAME           := matd3pd
   MATD3PD_DIRBASE           := $(MATD3PD_MODULENAME)
 
+ifneq ($(call is_makeclean),yes)
+$(info Defining $(MATD3PD_MODULENAME) names...)
+endif
+
   # If not cleaning:
-  ifneq ($(findstring found,$(patsubst clean,found,$(patsubst distclean,found,$(patsubst veryclean,found,$(MAKECMDGOALS))))),found)
+  ifneq ($(call is_makeclean),yes)
     $(shell mkdir -p $(out_dir_name))
     MATLABPATHOUTPUT := $(out_dir_name)/matlabpath.txt
     # If file doesnt exist:
     ifeq ($(wildcard $(MATLABPATHOUTPUT)),) 
+			$(info Generating $(MATLABPATHOUTPUT), this may take a while...)
       $(shell matlab -nojvm -nosplash -r "disp(matlabroot);disp(mexext);exit;" | tail -3 | head -2 > $(MATLABPATHOUTPUT))
+    else 
+      $(info Using previously generated $(MATLABPATHOUTPUT) as Matlab configuration for mex...)
     endif
     MEX:=$(shell cat $(MATLABPATHOUTPUT) | head -1)/bin/mex
     MEXEXT:=$(shell cat $(MATLABPATHOUTPUT) | tail -1)
@@ -40,9 +48,12 @@ ifndef all_names_defined
   libraries    += $(MATD3PD_DL)
   matlab_files += $(MATD3PD_DM) 
 
-$(info Defined $(MATD3PD_MODULENAME) names!)
-
 else
+
+ifneq ($(call is_makeclean),yes)
+$(info Defining $(MATD3PD_MODULENAME) rules...)
+endif
+
 
   MATD3PD_DL_DEP := $(CORE_DL)
   MATD3PD_DL_FLAGS := -L$(lib_dir_name) -L$(shell root-config --libdir) -lCore -lTree -lRIO
@@ -74,8 +85,6 @@ else
 		@#$(MEX) -n -cxx -v INCFLAGS='$(INCFLAGS)' CFLAGS='^$(CFLAGS)' LDFLAGS='$(LDFLAGS)' $(MATD3PD_INCFLAGS) $(MATD3PD_EXTRACFLAGS) $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 		$(MEX) -cxx CXXFLAGS='$(INCFLAGS) $(CFLAGS)' $(MATD3PD_DL_FLAGS) $(OutPutOpt) $@ $(call filter_libraries,$^) 
 		@#$(MEX) -v CXXFLAGS='$(INCFLAGS) $(MATLAB_INCFLAGS)' $(MATD3PD_EXTRACFLAGS) LDFLAGS='$(MATD3PD_DL_FLAGS) $(MATD3PD_DL_DEP)' $(OutPutOpt) $@ $(call filter_libraries,$^) 
-
-$(info Defined $(MATD3PD_MODULENAME) rules!)
 
 endif
 

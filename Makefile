@@ -43,6 +43,10 @@ define print
 echo "$1:$($1)"
 endef
 
+define is_makeclean
+$(findstring yes,$(patsubst clean,yes,$(patsubst distclean,yes,$(patsubst veryclean,yes,$(MAKECMDGOALS)))))
+endef
+
 # $(call source_to_header,source_file_list)
 define source_to_header
 $(subst $(src_dir_name),$(include_dir_name),$(subst .c,.h,$(filter %.c,$1)) \
@@ -153,15 +157,12 @@ matlab_files :=
 all:
 
 # Define all modules names:
-$(info Defining all modules names...)
 include $(addsuffix /module.mk,$(modules))
 
-$(info Defining all_modules names...)
 # All modules names are declared:
 all_names_defined := defined
 
 # Define all modules rules:
-$(info Defining all modules rules...)
 include $(addsuffix /module.mk,$(modules))
 
 .PHONY: all

@@ -6,10 +6,17 @@ D3PD_PROGNAME          := run_d3pd_analysis
 D3PD_LIBNAME           := anad3pd
 D3PD_DIRBASE           := $(D3PD_MODULENAME)
 
+ifneq ($(call is_makeclean),yes)
+$(info Defining $(D3PD_MODULENAME) names...)
+endif
+
 $(eval $(call define_module_vars,$(D3PD_MODULE),$(D3PD_MODULENAME),$(D3PD_DIRBASE),$(D3PD_LIBNAME),$(D3PD_PROGNAME)))
-$(info Defined $(D3PD_MODULENAME) names!)
+
 
 else
+ifneq ($(call is_makeclean),yes)
+$(info Defining $(D3PD_MODULENAME) rules...)
+endif
 
 # Extra variables
 D3PD_DL_DEP := $(out_dir_name)/RootDictionary.o $(CORE_DL)
@@ -39,7 +46,6 @@ $(out_dir_name)/RootDictionary.o: $(out_dir_name)/RootDictionary.cpp
 	@echo "**"
 	$(CXX) $(CFLAGS) -c $(INCFLAGS) $< -o $@ $(D3PD_EXTRACFLAGS) 
 
-$(info Defined $(D3PD_MODULENAME) rules!)
 
 endif
 
