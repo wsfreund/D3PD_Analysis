@@ -212,7 +212,7 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
     el_is_testCluster = (UInt_t*) mxGetData(mxel_is_testCluster);
   }
 
-  double temp_RingerNNOut,temp_eta,temp_phi,temp_e,temp_reta,temp_emaxs1,temp_e2tsts1,temp_etha1,temp_weta,temp_weta2;
+  double temp_eta,temp_phi,temp_e,temp_reta,temp_emaxs1,temp_e2tsts1,temp_etha1,temp_weta,temp_weta2;
 
   //Reading the rings info.
   const Int_t nEntries = rootChain->GetEntries();

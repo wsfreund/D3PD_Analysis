@@ -19,7 +19,7 @@ endif
     MATLABPATHOUTPUT := $(out_dir_name)/matlabpath.txt
     # If file doesnt exist:
     ifeq ($(wildcard $(MATLABPATHOUTPUT)),) 
-			$(info Generating $(MATLABPATHOUTPUT), this may take a while...)
+      $(info Generating $(MATLABPATHOUTPUT), this may take a while...)
       $(shell matlab -nojvm -nosplash -r "disp(matlabroot);disp(mexext);exit;" | tail -3 | head -2 > $(MATLABPATHOUTPUT))
     else 
       $(info Using previously generated $(MATLABPATHOUTPUT) as Matlab configuration for mex...)
