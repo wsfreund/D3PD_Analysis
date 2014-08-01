@@ -9,6 +9,7 @@ function [trainedNetwork, trainInfo] = trainMyNN(nn, sgn_cl_size, bkg_cl_size, s
   bkg_total_size = bkg_cl_size*(bkg_total_clusters);
   sgn_train_cluster = create_cluster(sgn_cl_size,sgn_trn_clusters);
   bkg_train_cluster = create_cluster(bkg_cl_size,bkg_trn_clusters);
+
 	if(useFastNet)
 		untrainedNetwork = newff2(...
 			{sgn(:,create_cluster(sgn_cl_size,sgn_trn_clusters)), bkg(:,create_cluster(bkg_cl_size,bkg_trn_clusters))},...
@@ -26,11 +27,15 @@ function [trainedNetwork, trainInfo] = trainMyNN(nn, sgn_cl_size, bkg_cl_size, s
 		      ones(1,length(sgn_train_cluster)),...
 		      -ones(1,length(bkg_train_cluster))...
 		    ],...
-		    [nn],{'tansig','tansig'},trainMethod,'learngd','mse',{'fixunknowns','removeconstantrows'},{'removeconstantrows'},'divideind'...
+		    [nn],{'tansig','tansig'},trainMethod,'learngd','mse',...
+        {'fixunknowns','removeconstantrows'},{'removeconstantrows'},'divideind'...
 		  );
-		untrainedNetwork.divideParam.trainInd = [create_cluster(sgn_cl_size,sgn_trn_clusters) [sgn_total_size+create_cluster(bkg_cl_size,bkg_trn_clusters)]];
-		untrainedNetwork.divideParam.valInd = [create_cluster(sgn_cl_size,sgn_val_clusters) [sgn_total_size+create_cluster(bkg_cl_size,bkg_val_clusters)]];
-		untrainedNetwork.divideParam.testInd = [create_cluster(sgn_cl_size,sgn_tst_clusters) [sgn_total_size+create_cluster(bkg_cl_size,bkg_tst_clusters)]];
+		untrainedNetwork.divideParam.trainInd = [create_cluster(sgn_cl_size,sgn_trn_clusters) ...
+      [sgn_total_size+create_cluster(bkg_cl_size,bkg_trn_clusters)]];
+		untrainedNetwork.divideParam.valInd = [create_cluster(sgn_cl_size,sgn_val_clusters) ...
+      [sgn_total_size+create_cluster(bkg_cl_size,bkg_val_clusters)]];
+		untrainedNetwork.divideParam.testInd = [create_cluster(sgn_cl_size,sgn_tst_clusters) ...
+      [sgn_total_size+create_cluster(bkg_cl_size,bkg_tst_clusters)]];
 	end
   untrainedNetwork.trainParam.epochs = 10000; 
   %untrainedNetwork.trainParam.epochs = 100; 
@@ -82,15 +87,13 @@ function [trainedNetwork, trainInfo] = trainMyNN(nn, sgn_cl_size, bkg_cl_size, s
 		trainedNetwork.LW = tmp_trainedNetwork.LW;
 		trainedNetwork.IW = tmp_trainedNetwork.IW;
 		trainedNetwork.b  = tmp_trainedNetwork.b;
-		if(~useFastNet)
-			trainInfo.trainParam.trainInd = [];
-			trainInfo.trainParam.valInd = [];
-			trainInfo.trainParam.testInd = [];
-			trainInfo.trainParam.trainMask = {};
-			trainInfo.trainParam.valMask = {};
-			trainInfo.trainParam.testMask = {};
-			trainInfo.trainParam.testMask = {};
-		end
+    trainInfo.trainParam.trainInd = [];
+    trainInfo.trainParam.valInd = [];
+    trainInfo.trainParam.testInd = [];
+    trainInfo.trainParam.trainMask = {};
+    trainInfo.trainParam.valMask = {};
+    trainInfo.trainParam.testMask = {};
+    trainInfo.trainParam.testMask = {};
  	end
 
 end

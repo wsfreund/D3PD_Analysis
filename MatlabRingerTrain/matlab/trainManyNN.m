@@ -12,8 +12,17 @@ function [MyTrainAnalysis] = trainManyNN(pathSgn,pathBkg,inputopts)
 
 	opts = scanparam(defopts,inputopts);
 
-	load(pathSgn);
-	load(pathBkg);
+  if ischar(pathSgn)
+    load(pathSgn);
+  else isstruct(pathSgn)
+    elc = pathSgn;
+  end
+
+  if ischar(pathBkg)
+    load(pathBkg);
+  else
+    jet = pathBkg;
+  end
 
 	n_threads = str2double(getenv('OMP_NUM_THREADS'));
 

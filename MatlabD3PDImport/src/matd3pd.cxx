@@ -337,7 +337,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
   }
   
 
-  // TODO: Place this in a function on core
   TChain *rootChain = readTChainFilesFromPath(mxArrayToString(prhs[ROOT_FILE]), "egammaD3PD");
 
   truthAvailable = existTruth(rootChain);
