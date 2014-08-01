@@ -4,7 +4,8 @@ function [MyTrainAnalysis] = trainManyNN(pathSgn,pathBkg,inputopts)
 	defopts = struct('neurons',[5:20],'n_clusters',10,'n_clusters_train',6,...
 		'n_clusters_val',2,'n_train',10,'trainMethod','trainrp',...
 		'trainWrt','truth','useFastNet',1,'truth_type',11,'truth_mothertype',23,...
-		'trnSgnIsEM_mask',966493,'trnBkgIsEM_mask',93,'norm','norm1');
+		'trnSgnIsEM_mask',966493,'trnBkgIsEM_mask',93,'norm','norm1',...
+    'debug',false);
 
 	if(~exist('inputopts','var')) 
 		inputopts = struct; 
@@ -48,6 +49,11 @@ function [MyTrainAnalysis] = trainManyNN(pathSgn,pathBkg,inputopts)
     sgn = sgn.*repmat(1./(sum(sgn,1)+eps),[100 1]);
     bkg = bkg.*repmat(1./(sum(bkg,1)+eps),[100 1]);
 	end
+
+  if opts.debug
+    sgn = sgn(:,1:100);
+    bkg = bkg(:,1:100);
+  end
 
 	MyTrainAnalysis.n_clusters = opts.n_clusters;
 
