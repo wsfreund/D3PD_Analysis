@@ -188,6 +188,7 @@ private:
 
   // Hist maps:
   std::map<Key_t1,TH1F*> *et_energy_map; // Contains Tranverse Energy Distribution
+  std::map<Key_t1,TH1F*> *et_notMother_energy_map; // Contains Tranverse Energy Distribution for electrons not from Z
   std::map<Key_t1,TH1F*> *et_energy_test_map; // Contains Tranverse Energy Distribution for test data
   std::map<Key_t1,TH1F*> *nn_output_map; // Contains neural network output
   std::map<Key_t1,TH1F*> *particles_map; // Contains truth particles and the algorithm outputs for them
@@ -309,7 +310,7 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   // Members not configurable by user using constructor:
   useTestOnlySgn(false), useTestOnlyBkg(false), 
   hgres(100000),
-  et_energy_map(0),et_energy_test_map(0),
+  et_energy_map(0),et_notMother_energy_map(0),et_energy_test_map(0),
   nn_output_map(0),particles_map(0),
   var_dist_map(0),efficiency_map(0),corr_map(0),
   detailedTruthCounter_map(0),detailedTruthEff_map(0),outFile(0),
@@ -460,6 +461,10 @@ D3PDAnalysis::~D3PDAnalysis(){
   if(et_energy_map){
     clearHistMap(et_energy_map);
     delete et_energy_map;
+  }
+  if(et_notMother_energy_map){
+    clearHistMap(et_notMother_energy_map);
+    delete et_notMother_energy_map;
   }
   if(et_energy_test_map){
     clearHistMap(et_energy_test_map);

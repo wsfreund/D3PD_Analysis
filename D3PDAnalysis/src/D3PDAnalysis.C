@@ -49,6 +49,14 @@ void D3PDAnalysis::printMaps() const{
       std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
     }
   }
+  if(et_notMother_energy_map){
+    std::cout << "---------------------" << std::endl;
+    std::cout << "Energy Signal Not From Mother Map Keys: " << et_notMother_energy_map->size() << std::endl;
+    for(std::map<Key_t1,TH1F*>::iterator i=et_notMother_energy_map->begin();
+    	i!=et_notMother_energy_map->end();++i){
+    	std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
+    }
+  }
   if(et_energy_test_map){
     std::cout << "---------------------" << std::endl;
     std::cout << "Energy Test Map Keys: " << et_energy_test_map->size() << std::endl;
@@ -169,22 +177,27 @@ void D3PDAnalysis::setEtHists(){
 
   // Create map:
   et_energy_map = new std::map<Key_t1,TH1F*>();
+  et_notMother_energy_map = new std::map<Key_t1,TH1F*>();
 
   for(unsigned i = 0; i < ds_size;++i){
-    TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,1);
-    // Root 6 way to set rebinable axis: 
+    TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,500);
+    TH1F *hist_electronNotSignal = new TH1F( make_str(ds[i]), ( ds[i] + std::string(": Electrons not from Z;E_{T} (GeV)")).c_str(),100,0,500);
+// Root 6 way to set rebinable axis: 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
     hist->GetXaxis()->SetCanExtend(kTRUE);
+    hist_electronNotSignal->GetXaxis()->SetCanExtend(kTRUE);
 #else
     hist->SetBit(TH1::kCanRebin);
+    hist_electronNotSignal->SetBit(TH1::kCanRebin);
 #endif
     et_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist));
+    et_notMother_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist_electronNotSignal));
   }
 
   if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
     et_energy_test_map = new std::map<Key_t1,TH1F*>();
     for(unsigned i = 0; i < ds_size;++i){
-      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
+      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,500);
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
       hist->GetXaxis()->SetCanExtend(kTRUE);
 #else
@@ -653,6 +666,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       if(doUseRingerTestOnStd&&!isTest) // if we want to use same test to both algorithms
         continue; // then we continue when it is not a ringer test clusters
 
+      // if tagAndProbe blablabla
+
+
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
 
       // Re-define more useful variables:
@@ -757,6 +773,12 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         if(isTest)
           et_energy_test_map->find(Key_t1(ds))->second->Fill(el_et);
       }
+      if(doTruth){
+        const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
+        const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
+	if(TMath::Abs(el_truth_type) == signalPdgId && (el_truth_mothertype != signalMotherPdgId))
+	  et_notMother_energy_map->find(Key_t1(ds))->second->Fill(el_et);
+      }
 
       // Fill high binnage hist for ROC:
       if(!doForceRingerThres&&isTest)
@@ -823,7 +845,13 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
       // If doing signal and using truth info, we need to add full ds:
       if(d3pd == sgn && doTruth){
+        const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
+        const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
         et_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
+	
+	if((TMath::Abs(el_truth_type) == signalPdgId) && (el_truth_mothertype != signalMotherPdgId))
+	  et_notMother_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
+
         if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
           if(isTest)
             et_energy_test_map->find(Key_t1(full_ds))->second->Fill(el_et);
@@ -1290,6 +1318,7 @@ void D3PDAnalysis::draw(){
 
   // Drawing sequence:
   drawEnergyDistPlots(et_energy_map); outFile->Flush();
+  if(doTruth) {drawEnergyDistPlots(et_notMother_energy_map); outFile->Flush();}
   if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd) drawEnergyDistPlots(et_energy_test_map);
   if(doTruth) {drawStableParticlesPlots(); outFile->Flush();}
   if(doDetailedTruth) {drawDetailedTruth(); outFile->Flush();}
@@ -1321,8 +1350,7 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   }
   std::vector<TH1F*> energyHists; // Use vector just to sort it easier
   TH1F* histFullSignal = theEnergyMap->find(Key_t1(eg_key::SignalFullDs))->second;
-  for(std::map<Key_t1,TH1F*>::iterator i=theEnergyMap->begin();
-      i!=theEnergyMap->end();++i){
+  for(std::map<Key_t1,TH1F*>::iterator i=theEnergyMap->begin(); i!=theEnergyMap->end(); ++i){
     TH1F *hist = i->second;
     if(doTruth)
       switch (i->first.get_ds()){
@@ -1357,6 +1385,8 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   energyHists[0] = histClone;
   if(theEnergyMap==et_energy_test_map)
     histClone->SetTitle("Ringer Test Data E_{T} Distribution");
+  else if(theEnergyMap==et_notMother_energy_map)
+    histClone->SetTitle("Data E_{T} Distribution: Electrons not from Z");
   else
     histClone->SetTitle("Data E_{T} Distribution");
   histClone->Draw();
@@ -1385,8 +1415,11 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   }
   // Set log scale:
   gPad->SetLogy();
-
+  
   std::string output = "_data_energy_dist";
+  
+  if(theEnergyMap==et_notMother_energy_map)
+    output = "_data_notMother_energy_dist";
   if(theEnergyMap==et_energy_test_map)
     output += "_test";
   // And save TCanvas:
@@ -1397,6 +1430,7 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::drawEnergyDistPlots()" << std::endl;
+
 #endif
 }
 
