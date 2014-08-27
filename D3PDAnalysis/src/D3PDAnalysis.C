@@ -718,7 +718,7 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         if(doDetailedTruth){
           // Detailed truth fill:
           if((TMath::Abs(el_truth_type) == signalPdgId) && 
-              (el_truth_mothertype == signalMotherPdgId)){ // Then it s signal
+              (el_truth_mothertype == signalMotherPdgId)){ // Then it is signal
             fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput,isTest);
           }else{ // It is not signal:
             switch(TMath::Abs(el_truth_type)){
@@ -776,8 +776,14 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       if(doTruth){
         const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
         const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
-	if(TMath::Abs(el_truth_type) == signalPdgId && (el_truth_mothertype != signalMotherPdgId))
+	if(TMath::Abs(el_truth_type) == signalPdgId && (el_truth_mothertype != signalMotherPdgId)){
+	  if(d3pd == sgn)
+	    ds = eg_key::Signal;
+	  else
+	    ds = eg_key::Background;
 	  et_notMother_energy_map->find(Key_t1(ds))->second->Fill(el_et);
+	}
+	
       }
 
       // Fill high binnage hist for ROC:
@@ -849,8 +855,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
         et_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
 	
-	if((TMath::Abs(el_truth_type) == signalPdgId) && (el_truth_mothertype != signalMotherPdgId))
+	if((TMath::Abs(el_truth_type) == signalPdgId) && (el_truth_mothertype != signalMotherPdgId)){
 	  et_notMother_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
+	}
 
         if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
           if(isTest)
@@ -1350,8 +1357,14 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   }
   std::vector<TH1F*> energyHists; // Use vector just to sort it easier
   TH1F* histFullSignal = theEnergyMap->find(Key_t1(eg_key::SignalFullDs))->second;
+  
+  Double_t totalDataSize = 0;
   for(std::map<Key_t1,TH1F*>::iterator i=theEnergyMap->begin(); i!=theEnergyMap->end(); ++i){
     TH1F *hist = i->second;
+    
+    if(i->first.get_ds() == eg_key::Signal || i->first.get_ds() == eg_key::Background)
+	totalDataSize += hist->Integral();
+    
     if(doTruth)
       switch (i->first.get_ds()){
         case eg_key::BackgroundFromSignalDs:
@@ -1363,7 +1376,7 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
           break;
       }
     else
-      hist->Scale(1/hist->Integral()*100);
+    hist->Scale(1/hist->Integral()*100);
     unsigned thisColor = ds_size+1;
     for(size_t j=0;j<datasetColor.size();++j){
       if (std::string(hist->GetName()) == std::string(make_str(ds[j]))){
@@ -1390,8 +1403,10 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   else
     histClone->SetTitle("Data E_{T} Distribution");
   histClone->Draw();
-  for(std::vector<TH1F*>::iterator i=(energyHists.begin()+1);
-      i!=energyHists.end();++i){
+  for(std::vector<TH1F*>::iterator i=(energyHists.begin()+1); i!=energyHists.end();++i){
+    if(theEnergyMap==et_notMother_energy_map && (std::string((*i)->GetName()) == std::string(make_str(eg_key::BackgroundFromSignalDs))
+	|| std::string((*i)->GetName()) == std::string(make_str(eg_key::SignalFullDs))))
+      continue;
     (*i)->Draw("sames");
   }
   // Now prepare to change PaveStats:
