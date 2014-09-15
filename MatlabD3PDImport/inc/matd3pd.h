@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+//#include <string.h>
 
 // Matlab includes
 #include "mex.h"
@@ -34,14 +35,17 @@
 
 bool truthAvailable = false;
 bool testInfoAvailable = false;
+bool ringerCellInfoAvailable = false;
 
 using namespace std;
 
 bool existTruth(TChain *rootChain);
 bool existTestInfo(TChain *rootChain);
-void getNumberOfClusters(TChain *rootChain, UInt_t &n_particles, UInt_t &n_test_particles);
-UInt_t getRingSize(TChain *rootChain);
-mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_particles, const UInt_t n_test_particles);
+void getNumberOfClusters(TChain *rootChain, UInt_t &n_particles, UInt_t &n_test_particles,
+    bool usePhotonTree = false);
+UInt_t getRingSize(TChain *rootChain, bool usePhotonTree = false);
+mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, 
+    const UInt_t n_particles, const UInt_t n_test_particles, bool usePhotonTree = false);
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] );
 
 #endif

@@ -351,7 +351,7 @@ void help() {
             << "    --dataset [\"background\",\"signal\"] >"" \n"
             << "      If doing only test clusters, it is needed to sinalize which dataset is being propagated.\n"
             << "    --doUseTrnInfoOnNNFile [bool] >1 \n"
-            << "      If the file was created with d3pdexport.m, than the training information can be read directly on it.\n"
+            << "      If the file was created with d3pdexport.m, then the training information can be read directly on it.\n"
             << "    --sgnCluster_size [unsigned] >0 \n"
             << "      Size of signal clusters.\n"
             << "    --bkgCluster_size [unsigned] >0 \n"

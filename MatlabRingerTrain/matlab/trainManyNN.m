@@ -34,11 +34,11 @@ function [MyTrainAnalysis] = trainManyNN(pathSgn,pathBkg,inputopts)
 	end
 
 	if(strcmp(opts.trainWrt,'truth'))
-    sgn = elc.el_rings_E(:,find(abs(elc.el_truth_type)==opts.truth_type & elc.el_truth_mothertype==opts.truth_mothertype));
+    sgn = elc.el_rings_E(:,abs(elc.el_truth_type)==opts.truth_type & elc.el_truth_mothertype==opts.truth_mothertype);
     bkg = jet.el_rings_E;
 	elseif(strcmp(opts.trainWrt,'standard'))
-    sgn = elc.el_rings_E(:,find(~(bitand(elc.el_isEM,opts.trnSgnIsEM_mask))));
-    bkg = jet.el_rings_E(:,find(bitand(jet.el_isEM,opts.trnBkgIsEM_mask)));
+    sgn = elc.el_rings_E(:,~(bitand(elc.el_isEM,opts.trnSgnIsEM_mask)));
+    bkg = jet.el_rings_E(:,bitand(jet.el_isEM,opts.trnBkgIsEM_mask));
 	else
 		disp('Please use truth or standard as input to param trainWrt');
 	end
