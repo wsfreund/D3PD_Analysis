@@ -31,7 +31,9 @@ const char *TEST_FIELD_NAMES[] = {
   "el_is_testCluster"};
 
 const char *RINGER_CELLS_FIELD_NAMES[] = {
-  "el_rings_NCells",
+  "el_rings_NCells"};
+
+const char *RINGER_CELLS_EXTRA_FIELD_NAMES[] = {
   "el_rings_CellsEt",
   "el_rings_CellsEta",
   "el_rings_CellsPhi"};
@@ -40,6 +42,7 @@ unsigned NFIELDS              = SIZE(BASE_FIELD_NAMES);
 unsigned NFIELDS_TRUTH        = SIZE(TRUTH_FIELD_NAMES);
 unsigned NFIELDS_TEST         = SIZE(TEST_FIELD_NAMES);
 unsigned NFIELDS_RINGER_CELL  = SIZE(RINGER_CELLS_FIELD_NAMES);
+unsigned NFIELDS_RINGER_CELL_EXTRA  = SIZE(RINGER_CELLS_EXTRA_FIELD_NAMES);
 
 std::string collectionStr;
 
@@ -113,7 +116,7 @@ UInt_t getRingSize(TChain *rootChain, bool usePhotonTree)
 
 
 mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_particles, 
-    const UInt_t n_test_particles, bool usePhotonTree)
+    const UInt_t n_test_particles, bool usePhotonTree, bool getCellExtraInfo)
 {
   vector<vector<Float_t> > *rootel_Rings = new vector<vector<Float_t> >;
 
@@ -145,9 +148,9 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   vector<vector<UInt_t> > 
       *rootel_rings_NCells = (ringerCellInfoAvailable)?new vector<vector<UInt_t> >:0;
   vector<vector<Float_t> > 
-      *rootel_rings_CellsEt = (ringerCellInfoAvailable)?new vector<vector<Float_t> >:0,
-      *rootel_rings_CellsEta = (ringerCellInfoAvailable)?new vector<vector<Float_t> >:0,
-      *rootel_rings_CellsPhi = (ringerCellInfoAvailable)?new vector<vector<Float_t> >:0;
+      *rootel_rings_CellsEt = (ringerCellInfoAvailable&&getCellExtraInfo)?new vector<vector<Float_t> >:0,
+      *rootel_rings_CellsEta = (ringerCellInfoAvailable&&getCellExtraInfo)?new vector<vector<Float_t> >:0,
+      *rootel_rings_CellsPhi = (ringerCellInfoAvailable&&getCellExtraInfo)?new vector<vector<Float_t> >:0;
 
   Int_t rootel_n, rootel_n_test;
 
@@ -189,9 +192,11 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   }
   if(ringerCellInfoAvailable){
     rootChain->SetBranchAddress((collectionStr + "rings_NCells").c_str(),&rootel_rings_NCells);
-    rootChain->SetBranchAddress((collectionStr + "rings_CellsEt").c_str(),&rootel_rings_CellsEt);
-    rootChain->SetBranchAddress((collectionStr + "rings_CellsEta").c_str(),&rootel_rings_CellsEta);
-    rootChain->SetBranchAddress((collectionStr + "rings_CellsPhi").c_str(),&rootel_rings_CellsPhi);
+    if(getCellExtraInfo){
+      rootChain->SetBranchAddress((collectionStr + "rings_CellsEt").c_str(),&rootel_rings_CellsEt);
+      rootChain->SetBranchAddress((collectionStr + "rings_CellsEta").c_str(),&rootel_rings_CellsEta);
+      rootChain->SetBranchAddress((collectionStr + "rings_CellsPhi").c_str(),&rootel_rings_CellsPhi);
+    }
   }
 
   //Creating the Matlab structure that will contain the rings info..
@@ -222,6 +227,11 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   if(ringerCellInfoAvailable){
     for(unsigned i = 0; i<NFIELDS_RINGER_CELL;++k,++i){
       all_field_names[k] = (char*)RINGER_CELLS_FIELD_NAMES[i];
+    }
+    if(getCellExtraInfo){
+      for(unsigned i = 0; i<NFIELDS_RINGER_CELL_EXTRA;++k,++i){
+        all_field_names[k] = (char*)RINGER_CELLS_EXTRA_FIELD_NAMES[i];
+      }
     }
   }
 
@@ -278,9 +288,11 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
 
   if(ringerCellInfoAvailable){
     mxel_rings_NCells = mxCreateNumericMatrix(ringSize, n_particles, mxUINT32_CLASS, mxREAL);
-    mxel_rings_CellsEt = mxCreateCellMatrix(ringSize, n_particles);
-    mxel_rings_CellsEta = mxCreateCellMatrix(ringSize, n_particles);
-    mxel_rings_CellsPhi = mxCreateCellMatrix(ringSize, n_particles);
+    if(getCellExtraInfo){
+      mxel_rings_CellsEt = mxCreateCellMatrix(ringSize, n_particles);
+      mxel_rings_CellsEta = mxCreateCellMatrix(ringSize, n_particles);
+      mxel_rings_CellsPhi = mxCreateCellMatrix(ringSize, n_particles);
+    }
   }
 
   //Taking the pointers to the structure's fields, so we can fill them up.
@@ -402,25 +414,27 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
         for (Long64_t ringIdx = 0; ringIdx < ringSize; ++ringIdx) {
           UInt_t nCells = rootel_rings_NCells->at(entry_el).at(ringIdx);
           *el_rings_NCells++ = nCells;
-          // Array to copy
-          cellsEtArray  = mxCreateNumericMatrix(1, nCells, mxDOUBLE_CLASS, mxREAL);
-          cellsEtaArray = mxCreateNumericMatrix(1, nCells, mxDOUBLE_CLASS, mxREAL);
-          cellsPhiArray = mxCreateNumericMatrix(1, nCells, mxDOUBLE_CLASS, mxREAL);
-          cellsEt  = (double *) mxGetData(cellsEtArray);
-          cellsEta = (double *) mxGetData(cellsEtaArray);
-          cellsPhi = (double *) mxGetData(cellsPhiArray);
-          for(Long64_t cellIdx = 0; cellIdx < nCells; ++overallCellIdx, ++cellIdx){
-            temp_cellsEt = rootel_rings_CellsEt->at(entry_el).at(overallCellIdx);
-            *cellsEt++ = temp_cellsEt;
-            temp_cellsEta = rootel_rings_CellsEta->at(entry_el).at(overallCellIdx);
-            *cellsEta++ = temp_cellsEta;
-            temp_cellsPhi = rootel_rings_CellsPhi->at(entry_el).at(overallCellIdx);
-            *cellsPhi++ = temp_cellsPhi;
+          if(getCellExtraInfo){
+            // Array to copy
+            cellsEtArray  = mxCreateNumericMatrix(1, nCells, mxDOUBLE_CLASS, mxREAL);
+            cellsEtaArray = mxCreateNumericMatrix(1, nCells, mxDOUBLE_CLASS, mxREAL);
+            cellsPhiArray = mxCreateNumericMatrix(1, nCells, mxDOUBLE_CLASS, mxREAL);
+            cellsEt  = (double *) mxGetData(cellsEtArray);
+            cellsEta = (double *) mxGetData(cellsEtaArray);
+            cellsPhi = (double *) mxGetData(cellsPhiArray);
+            for(Long64_t cellIdx = 0; cellIdx < nCells; ++overallCellIdx, ++cellIdx){
+              temp_cellsEt = rootel_rings_CellsEt->at(entry_el).at(overallCellIdx);
+              *cellsEt++ = temp_cellsEt;
+              temp_cellsEta = rootel_rings_CellsEta->at(entry_el).at(overallCellIdx);
+              *cellsEta++ = temp_cellsEta;
+              temp_cellsPhi = rootel_rings_CellsPhi->at(entry_el).at(overallCellIdx);
+              *cellsPhi++ = temp_cellsPhi;
+            }
+            Long64_t currentIdx = (currentClusterNum)*(Long64_t)(ringSize)+ringIdx;
+            mxSetCell(mxel_rings_CellsEt,  currentIdx, cellsEtArray  );
+            mxSetCell(mxel_rings_CellsEta, currentIdx, cellsEtaArray );
+            mxSetCell(mxel_rings_CellsPhi, currentIdx, cellsPhiArray );
           }
-          Long64_t currentIdx = (currentClusterNum)*(Long64_t)(ringSize)+ringIdx;
-          mxSetCell(mxel_rings_CellsEt,  currentIdx, cellsEtArray  );
-          mxSetCell(mxel_rings_CellsEta, currentIdx, cellsEtaArray );
-          mxSetCell(mxel_rings_CellsPhi, currentIdx, cellsPhiArray );
         }
       }
     }
@@ -457,9 +471,11 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   }
   if(ringerCellInfoAvailable){
     delete rootel_rings_NCells;
-    delete rootel_rings_CellsEt;
-    delete rootel_rings_CellsEta;
-    delete rootel_rings_CellsPhi;
+    if(getCellExtraInfo){
+      delete rootel_rings_CellsEt;
+      delete rootel_rings_CellsEta;
+      delete rootel_rings_CellsPhi;
+    }
   }
 
   mxSetField(matRet, 0, "el_evtNum", mxel_evtNum); // 1
@@ -490,9 +506,11 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   }
   if(ringerCellInfoAvailable){
     mxSetField(matRet, 0, "el_rings_NCells", mxel_rings_NCells);
-    mxSetField(matRet, 0, "el_rings_CellsEt", mxel_rings_CellsEt);
-    mxSetField(matRet, 0, "el_rings_CellsEta", mxel_rings_CellsEta);
-    mxSetField(matRet, 0, "el_rings_CellsPhi", mxel_rings_CellsPhi);
+    if(getCellExtraInfo){
+      mxSetField(matRet, 0, "el_rings_CellsEt", mxel_rings_CellsEt);
+      mxSetField(matRet, 0, "el_rings_CellsEta", mxel_rings_CellsEta);
+      mxSetField(matRet, 0, "el_rings_CellsPhi", mxel_rings_CellsPhi);
+    }
   }
 
   return matRet;
@@ -521,6 +539,16 @@ void mexFunction( int nout, mxArray *out[], int nin, const mxArray *in[] )
             "Use photon tree flag must be a scalar bool.");
     }
     usePhotonTree = mxGetScalar(in[1]);
+  }
+
+  bool getCellExtraInfo = false;
+
+  if (nin>2){
+    if( !mxIsLogicalScalar(in[2]) ){
+        mexErrMsgIdAndTxt("D3PDAnalysis:MatlabD3PDImport:matd3pd",
+            "Use photon tree flag must be a scalar bool.");
+    }
+    getCellExtraInfo = mxGetScalar(in[2]);
   }
 
   if (!usePhotonTree){
@@ -558,7 +586,7 @@ void mexFunction( int nout, mxArray *out[], int nin, const mxArray *in[] )
   
   printf("Loading the rings...\n");
   out[OUT_MAT_STR] = getD3PDInfo(rootChain, ringSize, n_particles, 
-      n_test_particles,usePhotonTree);
+      n_test_particles,usePhotonTree,getCellExtraInfo);
   printf("Deleting ROOT TChain ...\n");
   delete rootChain;
 }

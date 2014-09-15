@@ -45,7 +45,8 @@ void getNumberOfClusters(TChain *rootChain, UInt_t &n_particles, UInt_t &n_test_
     bool usePhotonTree = false);
 UInt_t getRingSize(TChain *rootChain, bool usePhotonTree = false);
 mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, 
-    const UInt_t n_particles, const UInt_t n_test_particles, bool usePhotonTree = false);
+    const UInt_t n_particles, const UInt_t n_test_particles, bool usePhotonTree = false,
+    bool getCellExtraInfo = false);
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] );
 
 #endif
