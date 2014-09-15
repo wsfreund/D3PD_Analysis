@@ -356,7 +356,7 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   {
     rootChain->GetEntry(ev);
 
-    for (UInt_t entry_el = 0; entry_el < rootel_n; ++entry_el,++currentClusterNum){
+    for (Int_t entry_el = 0; entry_el < rootel_n; ++entry_el,++currentClusterNum){
 
       overallCellIdx = 0;
 
@@ -440,7 +440,7 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
     }
 
     if(testInfoAvailable){
-      for(UInt_t entry_el_test = 0; entry_el_test < rootel_n_test; ++entry_el_test){
+      for(Int_t entry_el_test = 0; entry_el_test < rootel_n_test; ++entry_el_test){
         *el_RingerNNOut++ = rootel_RingerNNOut->at(entry_el_test); 
       }
     }
