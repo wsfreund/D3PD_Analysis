@@ -118,6 +118,7 @@ UInt_t getRingSize(TChain *rootChain, bool usePhotonTree)
 mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_particles, 
     const UInt_t n_test_particles, bool usePhotonTree, bool getCellExtraInfo)
 {
+
   vector<vector<Float_t> > *rootel_Rings = new vector<vector<Float_t> >;
 
   vector<Double_t> *rootel_RingerNNOut = new vector<Double_t>;
@@ -205,16 +206,15 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   char *all_field_names[n_size];
   unsigned k = 0;
 
-  if(truthAvailable) n_size+=NFIELDS_TRUTH;
-  if(testInfoAvailable) n_size+=NFIELDS_TEST;
-  if(ringerCellInfoAvailable) n_size+=NFIELDS_RINGER_CELL;
   if(truthAvailable){
+    n_size+=NFIELDS_TRUTH;
     for(;k<NFIELDS_TRUTH;++k){
       all_field_names[k] = (char*)TRUTH_FIELD_NAMES[k];
     }
   }
 
   if(testInfoAvailable){
+    n_size+=NFIELDS_TEST;
     for(unsigned i = 0; i<NFIELDS_TEST;++k,++i){
       all_field_names[k] = (char*)TEST_FIELD_NAMES[i];
     }
@@ -225,10 +225,12 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
   }
 
   if(ringerCellInfoAvailable){
+    n_size+=NFIELDS_RINGER_CELL;
     for(unsigned i = 0; i<NFIELDS_RINGER_CELL;++k,++i){
       all_field_names[k] = (char*)RINGER_CELLS_FIELD_NAMES[i];
     }
     if(getCellExtraInfo){
+      n_size+=NFIELDS_RINGER_CELL_EXTRA;
       for(unsigned i = 0; i<NFIELDS_RINGER_CELL_EXTRA;++k,++i){
         all_field_names[k] = (char*)RINGER_CELLS_EXTRA_FIELD_NAMES[i];
       }
@@ -309,30 +311,21 @@ mxArray *getD3PDInfo(TChain *rootChain, const UInt_t ringSize, const UInt_t n_pa
          *el_reta        = (double*) mxGetData(mxel_reta),
          *el_weta        = (double*) mxGetData(mxel_weta),
          *el_weta2       = (double*) mxGetData(mxel_weta2),
-         *cellsEt, 
-         *cellsEta,
-         *cellsPhi;
+         *cellsEt        = 0, 
+         *cellsEta       = 0,
+         *cellsPhi       = 0;
 
   UInt_t *el_evtNum         = (UInt_t*) mxGetData(mxel_evtNum),
          *el_isem           = (UInt_t*) mxGetData(mxel_isem),
          *el_is_testCluster = (testInfoAvailable)?((UInt_t*) mxGetData(mxel_is_testCluster)):0,
          *el_rings_NCells   = (ringerCellInfoAvailable)?((UInt_t*) mxGetData(mxel_rings_NCells)):0;
 
-  Int_t *el_truth_type, 
-        *el_truth_mothertype, 
-        *el_truth_status, 
-        *el_truth_barcode,
-        *el_truth_motherbarcode, 
-        *el_truth_matched;
-
-  if(truthAvailable){
-    el_truth_type          = (Int_t *) mxGetData(mxel_truth_type);
-    el_truth_mothertype    = (Int_t *) mxGetData(mxel_truth_mothertype);
-    el_truth_status        = (Int_t *) mxGetData(mxel_truth_status);
-    el_truth_barcode       = (Int_t *) mxGetData(mxel_truth_barcode);
-    el_truth_motherbarcode = (Int_t *) mxGetData(mxel_truth_motherbarcode);
-    el_truth_matched       = (Int_t *) mxGetData(mxel_truth_matched);
-  }
+  Int_t *el_truth_type            = (truthAvailable)?((Int_t *) mxGetData(mxel_truth_type)):0, 
+        *el_truth_mothertype      = (truthAvailable)?((Int_t *) mxGetData(mxel_truth_mothertype)):0, 
+        *el_truth_status          = (truthAvailable)?((Int_t *) mxGetData(mxel_truth_status)):0,
+        *el_truth_barcode         = (truthAvailable)?((Int_t *) mxGetData(mxel_truth_barcode)):0,
+        *el_truth_motherbarcode   = (truthAvailable)?((Int_t *) mxGetData(mxel_truth_motherbarcode)):0, 
+        *el_truth_matched         = (truthAvailable)?((Int_t *) mxGetData(mxel_truth_matched)):0;
 
   double temp_eta,
          temp_cl_eta0Calo,
