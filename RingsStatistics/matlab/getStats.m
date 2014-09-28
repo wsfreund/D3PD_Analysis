@@ -4,7 +4,7 @@ function [stats,data,handles]=getStats(varargin)
 %
 
 % - Creation Date: Tue, 19 Aug 2014
-% - Last Modified: Mon, 01 Sep 2014
+% - Last Modified: Sun, 28 Sep 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -1905,7 +1905,7 @@ function layer = whichLayer(cRing,method)
 %
 
 % - Creation Date: Tue, 26 Aug 2014
-% - Last Modified: Mon, 01 Sep 2014
+% - Last Modified: Sun, 28 Sep 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -1930,7 +1930,7 @@ function out = getStatsInfoFor(mat,layer,method,nLayerRings,layerCode)
 %
 
 % - Creation Date: Wed, 20 Aug 2014
-% - Last Modified: Mon, 01 Sep 2014
+% - Last Modified: Sun, 28 Sep 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
