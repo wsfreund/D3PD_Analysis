@@ -175,7 +175,7 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
       if paramOpts.useParallel
         % Prepare matlab pool
         if strcmp('yes',paramOpts.useParallel)
-          n_threads = str2double(getenv('OMP_NUM_THREADS'))
+          n_threads = str2double(getenv('OMP_NUM_THREADS'));
           if isempty(n_threads) || ~isfinite(n_threads)
             paramOpts.useParallel = 'no';
           else
