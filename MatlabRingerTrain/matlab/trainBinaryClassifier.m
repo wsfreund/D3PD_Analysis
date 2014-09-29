@@ -2,7 +2,7 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
     dataStruct,paramOpts)
 
 % - Creation Date: Fri, 26 Sep 2014
-% - Last Modified: Sun, 28 Sep 2014
+% - Last Modified: Mon, 29 Sep 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -211,7 +211,15 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
       trainInfo.time = tmpTrainInfo.time;
       trainInfo.perf = tmpTrainInfo.perf;
       trainInfo.vperf = tmpTrainInfo.vperf;
-      trainInfo.tperf = tmpTrainInfo.tperf;
+      % Matlab seems to ignore data if they are the same:
+      if isfield(dataStruct,'useTstAsValidation') && ...
+          dataStruct.useTstAsValidation
+        trainInfo.tperf = tmpTrainInfo.vperf;
+      else
+        trainInfo.tperf = tmpTrainInfo.tperf;
+      end
+      trainInfo.plotTrainEvolution = @(varargin) plotNNFFMatlab(...
+        trainInfo,varargin{:});
 
     end
     trainedClassifier.userdata.outputFun = @(in) sim(...
@@ -220,5 +228,60 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
   case 'libsvm'
   end
 
+
+end
+
+function lineH = plotNNFFMatlab(trainInfo,varargin)
+  if numel(varargin)<3
+    varargin{3} = 'epoch';
+    if numel(varargin)<2
+      varargin{2} = gca;
+      if numel(varargin)<1
+        varargin{1} = 2;
+      end
+    end
+  end
+  plotStyle = varargin{1};
+  axesH = varargin{2};
+  xField = varargin{3};
+
+  trnColor = [0.0706    0.4078    0.7020];
+  valColor = [1    0    0];
+  tstColor = [0   .8    0];
+
+  if strcmp(varargin{3},'epoch')
+    trainInfo.epoch = 1:numel(trainInfo.perf);
+  end
+
+  lineH = plot(axesH,trainInfo.(xField),trainInfo.perf);%,...
+    %trainInfo.(xField),trainInfo.vperf);%,...
+    %trainInfo.(xField),trainInfo.tperf);
+
+  for k=1:numel(lineH)
+    switch k
+    case 1
+      color = trnColor;
+    case 2
+      color = valColor;
+    case 3
+      color = tstColor;
+    end
+    switch plotStyle
+    case 0
+      set(lineH(k),'Color',GraphUtils.fadeColor(...
+        color),'LineStyle','--');
+    case 1
+      set(lineH(k),'Color',GraphUtils.fadeColor(color));
+    case 2
+      set(lineH(k),'Color',color);
+      set(lineH(k),'LineWidth',2,'LineStyle','--');
+    case 3
+      set(lineH(k),'Color',color);
+      set(lineH(k),'LineWidth',4);
+    otherwise
+      Output.ERROR('D3PDAnalysis:trainedClassifier:plotNNFFMatlab',...
+        'Unknown input plotStyle. It must be either 0, 1 or 2.');
+    end
+  end
 
 end

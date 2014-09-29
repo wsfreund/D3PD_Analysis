@@ -4,6 +4,9 @@ include $(shell root-config --etcdir)/Makefile.arch
 #LD := $(shell root-config --ld)
 #OutPutOpt := -o
 
+SHELL = /bin/bash
+#.SHELLFLAGS = -x
+
 #INCFLAGS := -pthread -m64 -DDEBUG=${DEBUG} -I/Users/wsfreund/root/include
 
 SPACE :=
