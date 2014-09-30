@@ -345,8 +345,8 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
     if paramOpts.evalTime
       tic;
     end
-    while (true)
-      try
+    %while (true)
+    %  try
         trainedClassifier = svmtrain(...
           [...
             dataStruct.sgn(:,trnSgnClusterInd) ...
@@ -356,10 +356,10 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
             ones(1,numel(trnSgnClusterInd)) ...
             -ones(1,numel(trnBkgClusterInd)) ...
           ]',cellArgs{:});
-        break;
-      catch 
-      end
-    end
+    %    break;
+    %  catch 
+    %  end
+    %end
     if paramOpts.evalTime
       trainInfo.trainTime = toc;
     end
