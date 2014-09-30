@@ -173,8 +173,8 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
   % FIXME Add check to see if this cross-validation possibilities is
   % greater than number of kfolds
 
-  save(sprintf('xValidateAnalysis%s',opts.saveStr),...
-    'xValidateAnalysis');
+  %save(sprintf('xValidateAnalysis%s',opts.saveStr),...
+  %  'xValidateAnalysis');
 
   for iParam = 1:total
 
@@ -771,8 +771,8 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
       %bkg = mapstd('reverse',bkg,trn_ps);
     end
 
-    save(sprintf('xValidateAnalysis%s',opts.saveStr),...
-      'xValidateAnalysis','-append');
+    %save(sprintf('xValidateAnalysis%s',opts.saveStr),...
+    %  'xValidateAnalysis','-append');
     % Get test efficiency for previous classifier:
     Output.INFO('Finished Cross-Validation for classifier %s.',...
       opts.paramOpts.classifierStr);
@@ -880,7 +880,7 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
   end
 
   save(sprintf('xValidateAnalysis%s',opts.saveStr),...
-    'xValidateAnalysis','-append');
+    'xValidateAnalysis');
 
 end
 
