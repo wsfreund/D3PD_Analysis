@@ -34,6 +34,7 @@ function classifier = trainOAOClassifier(classData,varargin)
 
   classifier.opts = opts;
   classifier.opts.testCell = [];
+  classifier.opts.classifierStr = inputopts.paramOpts.classifierStr;
 
   classifier.numOfClasses = numel(classData);
 
@@ -64,7 +65,8 @@ function classifier = trainOAOClassifier(classData,varargin)
       localInputOpts.testBkgData = bkgTest;
       localInputOpts.valFigStr = sprintf('%s | Class %d x %d',...
         opts.valFigStr,target1,target2);
-      localInputOpts.saveStr = sprintf('_c%dxc%d',target1,target2);
+      localInputOpts.saveStr = [opts.saveStr ...
+        sprintf('_c%dxc%d',target1,target2)];
 
       classifier.OAO_crossVal{target1,target2} = ...
         xValidateBinaryClassifier(sgn,bkg,localInputOpts);
@@ -339,33 +341,63 @@ function classifier = trainOAOClassifier(classData,varargin)
   classifier.xValInfo.SPAllDataMean = mean(SPAllData,2);
   classifier.xValInfo.SPAllDataStd = std(SPAllData,[],2);
 
-  timeSum = zeros(...
-    size(classifier.OAO_crossVal{1,2}.xValInfo.timeMatrix,1),...
-    size(classifier.OAO_crossVal{1,2}.xValInfo.timeMatrix,2)*...
-    size(classifier.OAO_crossVal{1,2}.xValInfo.timeMatrix,3)...
-    );
+  if classifier.OAO_crossVal{1,2}.opts.paramOpts.evalTime
+    timeSum = zeros(...
+      size(classifier.OAO_crossVal{1,2}.xValInfo.timeMatrix,1),...
+      size(classifier.OAO_crossVal{1,2}.xValInfo.timeMatrix,2)*...
+      size(classifier.OAO_crossVal{1,2}.xValInfo.timeMatrix,3)...
+      );
 
-  for target1 = 1:classifier.numOfClasses
-    for target2 = 1:classifier.numOfClasses
-      if target2 <= target1
-        continue;
+    for target1 = 1:classifier.numOfClasses
+      for target2 = 1:classifier.numOfClasses
+        if target2 <= target1
+          continue;
+        end
+        timeSum = timeSum + reshape(classifier.OAO_crossVal{...
+          target1,target2}.xValInfo.timeMatrix,...
+          size(timeSum,1),size(timeSum,2),size(timeSum,3));
       end
-      timeSum = timeSum + reshape(classifier.OAO_crossVal{...
-        target1,target2}.xValInfo.timeMatrix,...
-        size(timeSum,1),size(timeSum,2),size(timeSum,3));
     end
+
+    classifier.xValInfo.timeSum = timeSum;
+
+    classifier.xValInfo.meanTime = mean(timeSum,2);
+    classifier.xValInfo.stdTime = std(timeSum,[],2);
+
+    classifier.plotXValTimeFigure = @(varargin) plotXValTimeFigure(...
+      classifier,opts);
+
+    figH = classifier.plotXValTimeFigure();
+    saveas(figH, ...
+      sprintf('%s-OAOMerged_Time%s',...
+      classifier.opts.classifierStr,...
+      classifier.opts.saveStr),...
+      'fig');
+    close(figH)
   end
 
-  classifier.xValInfo.timeSum = timeSum;
-
-  classifier.xValInfo.meanTime = mean(timeSum,2);
-  classifier.xValInfo.stdTime = std(timeSum,[],2);
 
   classifier.plotxValParam = @(varargin) plotxValParam(classifier,...
     opts,varargin{:});
 
-  classifier.plotXValTimeFigure = @(varargin) plotXValTimeFigure(...
-    classifier,opts);
+  figH = classifier.plotxValParam('AllData');
+  saveas(figH, ...
+    sprintf('%s-OAOMerged_CrossVal_SPAllData%s',...
+    classifier.opts.classifierStr,...
+    classifier.opts.saveStr),...
+    'fig');
+  close(figH)
+
+  figH = classifier.plotxValParam('Tst');
+  saveas(figH, ...
+    sprintf('%s-OAOMerged_CrossVal_SPTst%s',...
+    classifier.opts.classifierStr,...
+    classifier.opts.saveStr),...
+    'fig');
+  close(figH)
+
+  save(sprintf('OAOClassifier%s',opts.saveStr),...
+    'classifier');
 
 end
 
@@ -580,12 +612,21 @@ function [decision,labels,out] = getDecision(classifier,inData,...
           normIn = bsxfun(@rdivide,inData{cIn},...
             sum(dsIn,1)+eps);
         end
-        out{cIn}(cOut,:) = OAO_classifiers{target1,target2}...
-          .userdata.outputFun(normIn);
-        target1Msk = out{cIn}(cOut,:) > OAO_classifiers{...
-          target1,target2}.userdata.thresTst;
-        labels{cIn}(cOut,target1Msk) = target1;
-        labels{cIn}(cOut,~target1Msk) = target2;
+        if isfield(OAO_classifiers{target1,target2}.userdata,...
+            'labelFun')
+          labels{cIn}(cOut,:) = OAO_classifiers{target1,target2}...
+            .userdata.labelFun(normIn);
+          target1Msk = labels{cIn}(cOut,:)==1;
+          labels{cIn}(cOut,target1Msk) = target1;
+          labels{cIn}(cOut,~target1Msk) = target2;
+        else
+          out{cIn}(cOut,:) = OAO_classifiers{target1,target2}...
+            .userdata.outputFun(normIn);
+          target1Msk = out{cIn}(cOut,:) > OAO_classifiers{...
+            target1,target2}.userdata.thresTst;
+          labels{cIn}(cOut,target1Msk) = target1;
+          labels{cIn}(cOut,~target1Msk) = target2;
+        end
       end
       cOut = cOut + 1;
     end
@@ -628,8 +669,13 @@ function figH = plotxValParam(classifier,opts,varargin)
 
   figH = whiteFigure;
   hold on
-  eH = errorbar(classifier.xValParam,...
-    paramMeanToPlot,paramStdToPlot);
+  if iscell(classifier.xValParam)
+    eH = errorbar(1:numel(classifier.xValParam),...
+      paramMeanToPlot,paramStdToPlot);
+  else
+    eH = errorbar(classifier.xValParam,...
+      paramMeanToPlot,paramStdToPlot);
+  end
   set(eH,'LineWidth',2,'MarkerEdgeColor','r',...
     'MarkerSize',10,'Marker','o');
   title(sprintf('%s %s',classifier.OAO_crossVal{1,2}.opts...
@@ -642,9 +688,25 @@ function figH = plotxValParam(classifier,opts,varargin)
   grid(gca,'on')
   grid(gca,'minor')
   axis(gca,'tight')
-  set(gca,'XTickLabel',arrayfun(@(in) num2str(in),...
-    classifier.xValParam,'Uniform',false),...
-    'XTick',classifier.xValParam);
+  if iscell(classifier.xValParam)
+    representation = cell(1,numel(classifier.xValParam));
+    for xVal = 1:numel(classifier.xValParam) 
+      representation{xVal} = '';
+      for iPar = 1:numel(classifier.xValParam{xVal}) 
+        representation{xVal} = [representation{xVal} sprintf('%g',...
+          classifier.xValParam{xVal}(iPar))];
+        if iPar ~= numel(classifier.xValParam{xVal})
+          representation{xVal} = [representation{xVal} '|'];
+        end
+      end
+    end
+    set(gca,'XTickLabel',representation,...
+      'XTick',1:numel(classifier.xValParam));
+  else
+    set(gca,'XTickLabel',arrayfun(@(in) num2str(in),...
+      classifier.xValParam,'Uniform',false),...
+      'XTick',classifier.xValParam);
+  end
   ax=axis;
   if ax(4)>100
     ax(4)=100;
@@ -662,9 +724,15 @@ function figH = plotXValTimeFigure(classifier,opts)
   figH = whiteFigure;
 
   hold on
-  eH = errorbar(classifier.xValParam,...
-    classifier.xValInfo.meanTime,...
-    classifier.xValInfo.stdTime);
+  if iscell(classifier.xValParam)
+    eH = errorbar(1:numel(classifier.xValParam),...
+      classifier.xValInfo.meanTime,...
+      classifier.xValInfo.stdTime);
+  else
+    eH = errorbar(classifier.xValParam,...
+      classifier.xValInfo.meanTime,...
+      classifier.xValInfo.stdTime);
+  end
   set(eH,'LineWidth',2,'MarkerEdgeColor','r',...
     'MarkerSize',10,'Marker','o');
   title(sprintf('%s %s',classifier.OAO_crossVal{1,2}.opts...
@@ -677,9 +745,25 @@ function figH = plotXValTimeFigure(classifier,opts)
   grid(gca,'on')
   grid(gca,'minor')
   axis(gca,'tight')
-  set(gca,'XTickLabel',arrayfun(@(in) num2str(in),...
-    classifier.xValParam,'Uniform',false),...
-    'XTick',classifier.xValParam);
+  if iscell(classifier.xValParam)
+    representation = cell(1,numel(classifier.xValParam));
+    for xVal = 1:numel(classifier.xValParam) 
+      representation{xVal} = '';
+      for iPar = 1:numel(classifier.xValParam{xVal}) 
+        representation{xVal} = [representation{xVal} sprintf('%g',...
+          classifier.xValParam{xVal}(iPar))];
+        if iPar ~= numel(classifier.xValParam{xVal})
+          representation{xVal} = [representation{xVal} '|'];
+        end
+      end
+    end
+    set(gca,'XTickLabel',representation,...
+      'XTick',1:numel(classifier.xValParam));
+  else
+    set(gca,'XTickLabel',arrayfun(@(in) num2str(in),...
+      classifier.xValParam,'Uniform',false),...
+      'XTick',classifier.xValParam);
+  end
   ax=axis;
   if ax(3)<0
     ax(3)=0;

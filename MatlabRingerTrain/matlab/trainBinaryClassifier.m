@@ -2,7 +2,7 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
     dataStruct,paramOpts)
 
 % - Creation Date: Fri, 26 Sep 2014
-% - Last Modified: Mon, 29 Sep 2014
+% - Last Modified: Tue, 30 Sep 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -24,22 +24,63 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
      'evalTime',true,...
      'debug',false...
      );
+  case {'svm-matlab','svm-matlab-rbf','svm-matlab-mlp',...
+      'svm-matlab-polinomial'}
+    % Builtin matlab SVM
+      defParamOpts = struct(...
+       'classifierStr','',...
+       'kernel_function','',...
+       'autoscale',false,...
+       'boxconstraint',1,...
+       'xValParam',[],...
+       'kernelcachelimit',20e3,... % Needs at least 381 MB
+       'kktviolationlevel',0,...
+       'method','SMO',...
+       'options',[],...
+       'tolkkt',1e-4,...
+       'debug',false,...
+       'evalTime',true,...
+       'useParallel','yes'...
+       );
   case 'libsvm'
     % http://www.csie.ntu.edu.tw/~cjlin/libsvm/
     % Since version 2.8, it implements an SMO-type algorithm proposed
-    % in this paper:  Working set selection using second order
-    % information for training SVM
-    
-  case 'svm-matlab'
-    % Builtin matlab SVM
+    % in this paper: "Working set selection using second order
+    % information for training SVM"
   case 'MSVMpack'
     % http://www.loria.fr/~lauer/MSVMpack/MSVMpack.html
   case 'svlab'
     % This one is the one from the book
   end
 
-
   paramOpts = scanparam(defParamOpts,paramOpts);
+
+  switch paramOpts.classifierStr
+  case {'ffnn-fastnet','ffnn','ffnn-matlab'}
+  case {'svm-matlab','svm-matlab-rbf','svm-matlab-mlp',...
+      'svm-matlab-polinomial'}
+    switch paramOpts.method
+    case 'SMO'
+      defSMOOpts = statset('MaxIter',5*10e6,'Display','iter');
+      paramOpts.options = scanparam(defSMOOpts,paramOpts.options);
+      if paramOpts.debug
+        paramOpts.options.MaxIter = 500;
+      end
+    case 'QP'
+      defQuadOpts = optimoptions('quadprog',...
+        'Algorithm','interior-point-convex','MaxIter',5000);
+      paramOpts.options = scanparam(defQuadOpts,paramOpts.options);
+      if paramOpts.debug
+        paramOpts.options.MaxIter = 20;
+      end
+    otherwise
+      Output.ERROR('D3PDAnalysis:trainBinaryClassifier:WrongInput',...
+        'Matlab svm-train method unknown: %s',paramOpts.method)
+    end
+  end
+
+
+  % Change default settings if input is 
 
   trnSgnClusterInd = create_cluster(...
     dataStruct.sgn_cl_size,dataStruct.sgn_trn_clusters);
@@ -225,6 +266,96 @@ function [trainedClassifier,trainInfo] = trainBinaryClassifier(...
     trainedClassifier.userdata.outputFun = @(in) sim(...
       trainedClassifier,in);
     trainInfo.crossValidationParam = 'Hidden Neuron Units';
+  case {'svm-matlab','svm-matlab-rbf','svm-matlab-mlp',...
+      'svm-matlab-polinomial'}
+
+    % Check if it helps on performance:
+    if paramOpts.useParallel
+      % Prepare matlab pool
+      if strcmp('yes',paramOpts.useParallel)
+        n_threads = str2double(getenv('OMP_NUM_THREADS'));
+        if isempty(n_threads) || ~isfinite(n_threads)
+          paramOpts.useParallel = 'no';
+        else
+          isOpen = matlabpool('size');
+          if isOpen ~= n_threads
+            set(findResource(),'ClusterSize',n_threads)
+            matlabpool('open',n_threads)
+          end
+        end
+      end
+    end
+    svmOpts = paramOpts;
+    svmOpts = rmfield(svmOpts,'debug');
+    svmOpts = rmfield(svmOpts,'useParallel');
+    svmOpts = rmfield(svmOpts,'classifierStr');
+    svmOpts = rmfield(svmOpts,'xValParam');
+    svmOpts = rmfield(svmOpts,'evalTime');
+    if ischar(svmOpts.kernel_function)
+      switch svmOpts.kernel_function
+      case 'polinomial'
+        svmOpts.polyorder = dataStruct.xValParam(1);
+        if numel(dataStruct.xValParam)>1
+          svmOpts.boxconstraint = dataStruct.xValParam(2);
+          trainInfo.crossValidationParam = 'poly\_order | for C';
+        else
+          trainInfo.crossValidationParam = sprintf(...
+            'poly_order, C = %g',svmOpts.boxconstraint);
+        end
+        Output.INFO(['Training matlab-svm-polinomial with '...
+          ' polyorder %g and C = %g'],svmOpts.polyorder,...
+          svmOpts.boxconstraint);
+      case 'rbf'
+        svmOpts.rbf_sigma = dataStruct.xValParam(1);
+        if numel(dataStruct.xValParam)>1
+          svmOpts.boxconstraint = dataStruct.xValParam(2);
+          trainInfo.crossValidationParam = 'rbf\_sigma | C';
+        else
+          trainInfo.crossValidationParam = sprintf(...
+            'rbf_sigma, for C = %d',svmOpts.boxconstraint);
+        end
+        Output.INFO(['Training matlab-svm-rbf with '...
+          ' rbf_sigma %g and C = %g'],svmOpts.rbf_sigma,...
+          svmOpts.boxconstraint);
+      case 'mlp'
+        svmOpts.mlp_params = dataStruct.xValParam(1:2);
+        if numel(dataStruct.xValParam>2)
+          svmOpts.boxconstraint = dataStruct.xValParam(3);
+          trainInfo.crossValidationParam = ...
+            'W_{MLP,Kernel} | b_{MLP,Kernel} | C';
+        else
+          trainInfo.crossValidationParam = sprintf(...
+            'W_{MLP,Kernel} | b_{MLP,Kernel}, for C = %g',...
+              svmOpts.boxconstraint);
+        end
+        Output.INFO(['Training matlab-svm-polinomial with '...
+          ' weigth %g, bias %g and C = %g'],svmOpts.mlp_params(1),...
+          svmOpts.mlp_params(2),svmOpts.boxconstraint);
+      end
+    else
+      Output.ERROR('Annonymous function kernels not supported');
+    end
+    cellArgs = [fieldnames(svmOpts)';struct2cell(svmOpts)'];
+    if paramOpts.evalTime
+      tic;
+    end
+    trainedClassifier = svmtrain(...
+      [...
+        dataStruct.sgn(:,trnSgnClusterInd) ...
+        dataStruct.bkg(:,trnBkgClusterInd)...
+      ]',...
+      [...
+        ones(1,numel(trnSgnClusterInd)) ...
+        -ones(1,numel(trnBkgClusterInd)) ...
+      ]',cellArgs{:});
+    if paramOpts.evalTime
+      trainInfo.trainTime = toc;
+    end
+    % TODO Epochs, and SVO, QP options
+    trainedClassifier.userdata.outputFun = @(in) Output.ERROR(...
+      'outputFun is not supported for svm-matlab for not.');
+    trainedClassifier.userdata.labelFun = @(in) svmclassify(...
+      trainedClassifier,in')';
   case 'libsvm'
   end
 

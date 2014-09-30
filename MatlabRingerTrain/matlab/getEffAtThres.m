@@ -5,7 +5,7 @@ function [SP,sgn_eff,bkg_false] = getEffAtThres(thres,...
 %
 
 % - Creation Date: Sat, 27 Sep 2014
-% - Last Modified: Sun, 28 Sep 2014
+% - Last Modified: Mon, 29 Sep 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -54,17 +54,26 @@ function [SP,sgn_eff,bkg_false] = getEffAtThres(thres,...
         dataStruct.bkg_trn_clusters));
   end
 
-  Ys = classifier.userdata.outputFun(sgn);
-  Yb = classifier.userdata.outputFun(bkg);
+  if ~isfield(classifier.userdata,'labelFun')
+    Ys = classifier.userdata.outputFun(sgn);
+    Yb = classifier.userdata.outputFun(bkg);
 
-  nYs = numel(Ys);
-  nYb = numel(Yb);
+    nYs = numel(Ys);
+    nYb = numel(Yb);
 
-  sgn_eff = sum(Ys > thres )/nYs*100;
-  bkg_eff = sum(Yb < thres )/nYb*100;
+    sgn_eff = sum(Ys > thres )/nYs*100;
+    bkg_eff = sum(Yb < thres )/nYb*100;
 
-  bkg_false = 100 - bkg_eff;
-  SP = sqrt(((sgn_eff + bkg_eff)/2).*sqrt(sgn_eff.*bkg_eff));
+    bkg_false = 100 - bkg_eff;
+    SP = sqrt(((sgn_eff + bkg_eff)/2).*sqrt(sgn_eff.*bkg_eff));
+  else
+    sgn_eff = ...
+      sum(classifier.userdata.labelFun(sgn)==1)/size(sgn,2)*100;
+    bkg_eff = ...
+      sum(classifier.userdata.labelFun(bkg)==-1)/size(bkg,2)*100;
+    bkg_false = 100 - bkg_eff;
+    SP = sqrt(((sgn_eff+bkg_eff)/2)*sqrt(sgn_eff*bkg_eff));
+  end
 
 end
 
