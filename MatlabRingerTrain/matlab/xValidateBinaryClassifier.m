@@ -577,6 +577,11 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
 
     bestInitArray = zeros(1,opts.kfold);
 
+    %if ~isempty(opts.testSgnData) && opts.tst clusters == 0
+    %  % TODO Change kfold to 1, since there won't be any change in the
+    %  % propagating data. 
+    %end
+
     %parfor cFold = 1:opts.kfold
     for cFold = 1:opts.kfold
 
