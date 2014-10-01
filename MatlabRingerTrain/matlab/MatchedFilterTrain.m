@@ -102,9 +102,9 @@ function maxCoefIdx = getMaxCorrIdx(in)
     maxCorrCoef = 0;
     maxCorrCoefIdx = 0;
     for k = 1:size(in,2)
-      corrCoefK = sum(abs(corr(in,in(:,k))))
-      if maxCorrCoef < corrCoefK
-        maxCorrCoef = corrCoefK;
+      corrCoefSum = sum(abs(corr(in,in(:,k))));
+      if maxCorrCoef < corrCoefSum
+        maxCorrCoef = corrCoefSum;
         maxCorrCoefIdx = k;
       end
     end
