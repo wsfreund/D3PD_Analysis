@@ -57,9 +57,12 @@ function matchedFilterStruct = MatchedFilterTrain(h0Data,h1Data,...
       matchedFilterStruct.matchS0 = mean(h0Data,2);
       matchedFilterStruct.matchS1 = mean(h1Data,2);
     case 'maxVariance'
-      Output.INFO('Using maxVariance of data as match parameter');
+      %Output.INFO('Using maxVariance of data as match parameter');
       matchedFilterStruct.matchS0 = h0Data(:,getMaxCorrIdx(h0Data));
       matchedFilterStruct.matchS1 = h1Data(:,getMaxCorrIdx(h1Data));
+    otherwise 
+      Output.ERROR('Unknown method %s',...
+        opts.deterministicExtractionMethod)
     end
     matchedFilterStruct.normS0 = sum(matchedFilterStruct.matchS0.^2)^(1/2);
     matchedFilterStruct.normS1 = sum(matchedFilterStruct.matchS1.^2)^(1/2);
@@ -93,17 +96,17 @@ function nComp = getNumberOfComponents(lambdas,opt)
 end
 
 function maxCoefIdx = getMaxCorrIdx(in)
-  try
-    [~,maxCoefIdx] = max(sum(abs(corr(in,in))));
-  catch 
+  %try
+  %  [~,maxCoefIdx] = max(sum(abs(corr(in,in))));
+  %catch 
     maxCorrCoef = 0;
     maxCorrCoefIdx = 0;
     for k = 1:size(in,2)
-      corrCoefK = sum(abs(corr(in,in(:,k))));
+      corrCoefK = sum(abs(corr(in,in(:,k))))
       if maxCorrCoef < corrCoef
-        maxCorrCoef = corrCoef;
-        maxCorrCoefIdx = k;
+        maxCorrCoef = corrCoef
+        maxCorrCoefIdx = k
       end
     end
-  end
+  %end
 end
