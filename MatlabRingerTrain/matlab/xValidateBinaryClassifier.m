@@ -205,7 +205,9 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
       % Only run train if validation is unique:
       while(true)
         perm_sgn = randperm(opts.n_clusters);
+        perm_sgn = 1:10;
         perm_bkg = randperm(opts.n_clusters);
+        perm_bkg = 1:10;
         if ~any(all(...
               bsxfun(@eq,alreadyValidatedPerm,[perm_sgn perm_bkg]),2 ...
             ))
