@@ -42,19 +42,20 @@ function filterAns = MatchedFilterPropagate(matchedFilterStruct,...
     N0 = matchedFilterStruct.opts.N0;
     % Ir : for Ir we work on the sample without the mean, since we
     % removed it for the pca calculation:
+    keyboard
     Ir = ...
       ... % Ir0:
       bsxfun(@times,... % This multiplication is the scale factor
         matchedFilterStruct.phi0(1:matchedFilterStruct.nCompH0d,:)* ... % Project data
-        bsxfun(@minus,inData,matchedFilterStruct.dataMean0).^2.* ... % Take square from the projected data
-        ,(matchedFilterStruct.lambda0square./...    % And here is the scale factor
-        (matchedFilterStruct.lambda0square+N0/2)) ...
+        bsxfun(@minus,inData,matchedFilterStruct.dataMean0).^2, ... % Take square from the projected data
+        (matchedFilterStruct.lambda0square ./ ...    % And here is the scale factor
+        (matchedFilterStruct.lambda0square+N0/2))) ...
       - ... % Ir1:
       bsxfun(@times,... % This multiplication is the scale factor
         matchedFilterStruct.phi1(1:matchedFilterStruct.nCompH1d,:)* ... % Project data
-        bsxfun(@minus,inData,matchedFilterStruct.dataMean1).^2.* ... % Take square from the projected data
-        ,(matchedFilterStruct.lambda1square./...    % And here is the scale factor
-        (matchedFilterStruct.lambda1square+N1/2));
+        bsxfun(@minus,inData,matchedFilterStruct.dataMean1).^2, ... % Take square from the projected data
+        (matchedFilterStruct.lambda1square./...    % And here is the scale factor
+        (matchedFilterStruct.lambda1square+N0/2)));
     % Filter answer is the sum from the deterministic component and 
     filterAns = Ir + Id; 
   end
