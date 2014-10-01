@@ -96,17 +96,17 @@ function nComp = getNumberOfComponents(lambdas,opt)
 end
 
 function maxCoefIdx = getMaxCorrIdx(in)
-  %try
-  %  [~,maxCoefIdx] = max(sum(abs(corr(in,in))));
-  %catch 
+  try
+    [~,maxCoefIdx] = max(sum(abs(corr(in,in))));
+  catch 
     maxCorrCoef = 0;
     maxCorrCoefIdx = 0;
     for k = 1:size(in,2)
       corrCoefK = sum(abs(corr(in,in(:,k))))
-      if maxCorrCoef < corrCoef
-        maxCorrCoef = corrCoef
-        maxCorrCoefIdx = k
+      if maxCorrCoef < corrCoefK
+        maxCorrCoef = corrCoefK;
+        maxCorrCoefIdx = k;
       end
     end
-  %end
+  end
 end
