@@ -49,46 +49,70 @@ function matchedFilterStruct = MatchedFilterTrain(h0Data,h1Data,...
     h1Data = opts.whiteningMatrix*h1Data;
   end
 
-  switch opts.implementation
-  case 'deterministic'
-    switch opts.deterministicExtractionMethod
-    case 'mean'
-      %Output.INFO('Using mean of data as match parameter');
-      matchedFilterStruct.matchS0 = mean(h0Data,2);
-      matchedFilterStruct.matchS1 = mean(h1Data,2);
-    case 'maxCorrelation'
-      %Output.INFO('Using maxVariance of data as match parameter');
-      matchedFilterStruct.matchS0 = h0Data(:,getMaxCorrIdx(h0Data));
-      matchedFilterStruct.matchS1 = h1Data(:,getMaxCorrIdx(h1Data));
-    otherwise 
-      Output.ERROR('D3PDAnalysis:MatchedFilterTrain:NeededArgument',...
-        'Unknown method %s',opts.deterministicExtractionMethod)
-    end
-    matchedFilterStruct.normS0 = sum(matchedFilterStruct.matchS0.^2)^(1/2);
-    matchedFilterStruct.normS1 = sum(matchedFilterStruct.matchS1.^2)^(1/2);
-    matchedFilterStruct.unscaledS0 = matchedFilterStruct.matchS0;
-    matchedFilterStruct.unscaledS1 = matchedFilterStruct.matchS1;
-    % Normalize components to unit area:
-    matchedFilterStruct.matchS0 = matchedFilterStruct.matchS0 / ...
-      matchedFilterStruct.normS0;
-    matchedFilterStruct.matchS1 = matchedFilterStruct.matchS1 / ...
-      matchedFilterStruct.normS1;
-  case 'stochastic'
+  switch opts.deterministicExtractionMethod
+  case 'mean'
+    %Output.INFO('Using mean of data as match parameter');
+    matchedFilterStruct.matchS0 = mean(h0Data,2);
+    matchedFilterStruct.matchS1 = mean(h1Data,2);
+  case 'maxCorrelation'
+    %Output.INFO('Using maxVariance of data as match parameter');
+    matchedFilterStruct.matchS0 = h0Data(:,getMaxCorrIdx(h0Data));
+    matchedFilterStruct.matchS1 = h1Data(:,getMaxCorrIdx(h1Data));
+  otherwise 
+    Output.ERROR('D3PDAnalysis:MatchedFilterTrain:NeededArgument',...
+      'Unknown method %s',opts.deterministicExtractionMethod)
+  end
+  matchedFilterStruct.normS0 = sum(matchedFilterStruct.matchS0.^2)^(1/2);
+  matchedFilterStruct.normS1 = sum(matchedFilterStruct.matchS1.^2)^(1/2);
+  matchedFilterStruct.unscaledS0 = matchedFilterStruct.matchS0;
+  matchedFilterStruct.unscaledS1 = matchedFilterStruct.matchS1;
+  % Normalize components to unit area:
+  matchedFilterStruct.matchS0 = matchedFilterStruct.matchS0 / ...
+    matchedFilterStruct.normS0;
+  matchedFilterStruct.matchS1 = matchedFilterStruct.matchS1 / ...
+    matchedFilterStruct.normS1;
+
+  if strcmp(opts.implementation,'stochastic')
     if isempty(opts.N0)
       Output.ERROR('D3PDAnalysis:MatchedFilterTrain:NeededArgument',...
         ['N0 is not available. It is needed for the '...
           'MatchedFilter training.']);
     end
-    %matchedFilterStruct.nCompH0d = ;
-    %matchedFilterStruct.nCompH1d = ;
+    [matchedFilterStruct.phi0,~,...
+      matchedFilterStruct.lambda0square,~,...
+      matchedFilterStruct.energyExplained0,...
+      matchedFilterStruct.dataMean0] = ...
+      pca(h0Data');
+    matchedFilterStruct.phi0 = ...
+      matchedFilterStruct.phi0';
+    matchedFilterStruct.whiteningMean0 = ...
+      matchedFilterStruct.whiteningMean0';
+
+    [matchedFilterStruct.phi1,~,...
+      matchedFilterStruct.lambda1square,~,...
+      matchedFilterStruct.energyExplained0,...
+      matchedFilterStruct.dataMean1] = ...
+      pca(h1Data');
+    matchedFilterStruct.phi1 = ...
+      matchedFilterStruct.phi1';
+    matchedFilterStruct.whiteningMean1 = ...
+      matchedFilterStruct.whiteningMean1';
+
+    matchedFilterStruct.nCompH0d = getNumberOfComponents(...
+      matchedFilterStruct.energyExplained0);
+    matchedFilterStruct.nCompH1d = getNumberOfComponents(...
+      matchedFilterStruct.energyExplained1);
   end
 
 
 end
 
-function nComp = getNumberOfComponents(lambdas,opt)
-  if isnumeric(opt)
-  elseif ischar(opt)
+function nComp = getNumberOfComponents(energyExplained,energyCut)
+  if isnumeric(energyCut)
+    nComp = find(cumsum(energyExplained)>energyCut,1,'first');
+  elseif ischar(energyCut)
+    Output.ERROR('D3PDAnalysis:MatchedFilterTrain',...
+      'String energy cut is not yet implemented.');
   else
     Output.ERROR('D3PDAnalysis:MatchedFilterTrain',...
       'Unknown option')

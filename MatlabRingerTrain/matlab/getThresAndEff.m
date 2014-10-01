@@ -1,9 +1,9 @@
 function [thres,SP_max,s_eff,b_fal,Ar] = getThresAndEff(classifier,...
-  dataStruct,evalStr,astep)
+  dataStruct,evalStr,nSteps)
 
 
   if nargin < 4
-    astep = 0.001;
+    nSteps = 2000;
     if nargin<3
       evalStr = 'tst';
     end
@@ -55,7 +55,8 @@ function [thres,SP_max,s_eff,b_fal,Ar] = getThresAndEff(classifier,...
     Ys = classifier.userdata.outputFun(sgn);
     Yb = classifier.userdata.outputFun(bkg);
 
-    edges = min(min(Ys),min(Yb)):astep:max(max(Ys),max(Yb));
+    edges = linspace(min(min(Ys),min(Yb)),...
+      max(max(Ys),max(Yb)),nSteps);
 
     SP = zeros(size(Ys));
 
@@ -80,7 +81,7 @@ function [thres,SP_max,s_eff,b_fal,Ar] = getThresAndEff(classifier,...
       ind_SP_max = round((last+first)/2);
     end
 
-    thres = -1 + (ind_SP_max-1)*astep;
+    thres = edges(ind_SP_max);
 
     if (nargout >= 3)
       s_eff = sgn_eff(ind_SP_max);
