@@ -4,7 +4,7 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
 
 
 % - Creation Date: Fri, 26 Sep 2014
-% - Last Modified: Tue, 30 Sep 2014
+% - Last Modified: Wed, 01 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -47,11 +47,13 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
   opts = scanparam(defopts,inputopts);
 
   if isempty(opts.paramOpts.classifierStr)
-    Output.ERROR('Classifier not specified');
+    Output.ERROR('D3PD_Analysis:xValidateAnalysis',...
+      'Classifier not specified');
   end
 
   if isempty(opts.paramOpts.xValParam)
-    Output.ERROR('xValParam not specified');
+    Output.ERROR('D3PD_Analysis:xValidateAnalysis',...
+      'xValParam not specified');
   end
 
   if isempty(opts.paramOpts.evalTime)
@@ -84,25 +86,25 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
       'All classes must have the same pattern size.');
   end
 
-  if opts.debug
-    if size(sgn,2)>100
-      sgn = sgn(:,1:100);
-    end
-    if size(opts.testSgnData,2)>100
-      opts.testSgnData = opts.testSgnData(:,1:100);
-    end
-    if size(opts.testBkgData,2)>100
-      opts.testBkgData = opts.testBkgData(:,1:100);
-    end
-    if size(bkg,2)>100
-      bkg = bkg(:,1:100);
-    end
-    if ~isfield(inputopts,'paramOpts') || ...
-        (isfield(inputopts,'paramOpts') && ...
-        ~isfield(inputopts.paramOpts,'debug'))
-      opts.paramOpts.debug = true;
-    end
-  end
+  %if opts.debug
+  %  if size(sgn,2)>100
+  %    sgn = sgn(:,1:100);
+  %  end
+  %  if size(opts.testSgnData,2)>100
+  %    opts.testSgnData = opts.testSgnData(:,1:100);
+  %  end
+  %  if size(opts.testBkgData,2)>100
+  %    opts.testBkgData = opts.testBkgData(:,1:100);
+  %  end
+  %  if size(bkg,2)>100
+  %    bkg = bkg(:,1:100);
+  %  end
+  %  if ~isfield(inputopts,'paramOpts') || ...
+  %      (isfield(inputopts,'paramOpts') && ...
+  %      ~isfield(inputopts.paramOpts,'debug'))
+  %    opts.paramOpts.debug = true;
+  %  end
+  %end
 
 
 	switch opts.norm
@@ -257,6 +259,11 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
         testSgnData_norm = mapstd('apply',opts.testSgnData,trn_ps);
         testBkgData_norm = mapstd('apply',opts.testBkgData,trn_ps);
       case 'norm1'
+        sgn_norm = sgn;
+        bkg_norm = bkg;
+        testSgnData_norm = opts.testSgnData;
+        testBkgData_norm = opts.testBkgData;
+      case 'none'
         sgn_norm = sgn;
         bkg_norm = bkg;
         testSgnData_norm = opts.testSgnData;
@@ -657,8 +664,13 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
       case 'norm1'
         sgn_norm = sgn;
         bkg_norm = bkg;
-        testSgnData_norm = testSgnData;
-        testBkgData_norm = testBkgData;
+        testSgnData_norm = opts.testSgnData;
+        testBkgData_norm = opts.testBkgData;
+      case 'none'
+        sgn_norm = sgn;
+        bkg_norm = bkg;
+        testSgnData_norm = opts.testSgnData;
+        testBkgData_norm = opts.testBkgData;
       otherwise
         Output.ERROR('D3PD_Analysis:UnknownNormalization',...
           'Normalization %s is not available.',opts.norm);
@@ -938,12 +950,16 @@ function figH = plotXValSPFigure(xValidateAnalysis,opts)
     representation = cell(1,numel(opts.paramOpts.xValParam));
     for xVal = 1:numel(opts.paramOpts.xValParam) 
       representation{xVal} = '';
-      for iPar = 1:numel(opts.paramOpts.xValParam{xVal}) 
-        representation{xVal} = [representation{xVal} sprintf('%g',...
-          opts.paramOpts.xValParam{xVal}(iPar))];
-        if iPar ~= numel(opts.paramOpts.xValParam{xVal})
-          representation{xVal} = [representation{xVal} '|'];
+      if ~ischar(opts.paramOpts.xValParam{xVal})
+        for iPar = 1:numel(opts.paramOpts.xValParam{xVal}) 
+          representation{xVal} = [representation{xVal} sprintf('%g',...
+            opts.paramOpts.xValParam{xVal}(iPar))];
+          if iPar ~= numel(opts.paramOpts.xValParam{xVal})
+            representation{xVal} = [representation{xVal} '|'];
+          end
         end
+      else
+        representation{xVal} = opts.paramOpts.xValParam{xVal};
       end
     end
     set(gca,'XTickLabel',representation,...
@@ -994,12 +1010,16 @@ function figH = plotXValTimeFigure(xValidateAnalysis,opts)
     representation = cell(1,numel(opts.paramOpts.xValParam));
     for xVal = 1:numel(opts.paramOpts.xValParam) 
       representation{xVal} = '';
-      for iPar = 1:numel(opts.paramOpts.xValParam{xVal}) 
-        representation{xVal} = [representation{xVal} sprintf('%g',...
-          opts.paramOpts.xValParam{xVal}(iPar))];
-        if iPar ~= numel(opts.paramOpts.xValParam{xVal})
-          representation{xVal} = [representation{xVal} '|'];
+      if ~ischar(opts.paramOpts.xValParam{xVal})
+        for iPar = 1:numel(opts.paramOpts.xValParam{xVal}) 
+          representation{xVal} = [representation{xVal} sprintf('%g',...
+            opts.paramOpts.xValParam{xVal}(iPar))];
+          if iPar ~= numel(opts.paramOpts.xValParam{xVal})
+            representation{xVal} = [representation{xVal} '|'];
+          end
         end
+      else
+        representation{xVal} = opts.paramOpts.xValParam{xVal};
       end
     end
     set(gca,'XTickLabel',representation,...

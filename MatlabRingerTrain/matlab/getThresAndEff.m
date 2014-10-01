@@ -54,7 +54,7 @@ function [thres,SP_max,s_eff,b_fal,Ar] = getThresAndEff(classifier,...
     Ys = classifier.userdata.outputFun(sgn);
     Yb = classifier.userdata.outputFun(bkg);
 
-    edges = -1:astep:1;
+    edges = min(min(Ys),min(Yb)):astep:max(max(Ys),max(Yb));
 
     SP = zeros(size(Ys));
 

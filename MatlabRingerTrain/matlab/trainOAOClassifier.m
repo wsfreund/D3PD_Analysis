@@ -4,7 +4,7 @@ function classifier = trainOAOClassifier(classData,varargin)
 %
 
 % - Creation Date: Sun, 28 Sep 2014
-% - Last Modified: Mon, 29 Sep 2014
+% - Last Modified: Wed, 01 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -691,13 +691,17 @@ function figH = plotxValParam(classifier,opts,varargin)
   if iscell(classifier.xValParam)
     representation = cell(1,numel(classifier.xValParam));
     for xVal = 1:numel(classifier.xValParam) 
-      representation{xVal} = '';
-      for iPar = 1:numel(classifier.xValParam{xVal}) 
-        representation{xVal} = [representation{xVal} sprintf('%g',...
-          classifier.xValParam{xVal}(iPar))];
-        if iPar ~= numel(classifier.xValParam{xVal})
-          representation{xVal} = [representation{xVal} '|'];
+      if ~ischar(classifier.xValParam{xVal})
+        representation{xVal} = '';
+        for iPar = 1:numel(classifier.xValParam{xVal}) 
+          representation{xVal} = [representation{xVal} sprintf('%g',...
+            classifier.xValParam{xVal}(iPar))];
+          if iPar ~= numel(classifier.xValParam{xVal})
+            representation{xVal} = [representation{xVal} '|'];
+          end
         end
+      else
+        representation{xVal} = classifier.xValParam{xVal};
       end
     end
     set(gca,'XTickLabel',representation,...
@@ -749,12 +753,16 @@ function figH = plotXValTimeFigure(classifier,opts)
     representation = cell(1,numel(classifier.xValParam));
     for xVal = 1:numel(classifier.xValParam) 
       representation{xVal} = '';
-      for iPar = 1:numel(classifier.xValParam{xVal}) 
-        representation{xVal} = [representation{xVal} sprintf('%g',...
-          classifier.xValParam{xVal}(iPar))];
-        if iPar ~= numel(classifier.xValParam{xVal})
-          representation{xVal} = [representation{xVal} '|'];
+      if ~ischar(classifier.xValParam{xVal})
+        for iPar = 1:numel(classifier.xValParam{xVal}) 
+          representation{xVal} = [representation{xVal} sprintf('%g',...
+            classifier.xValParam{xVal}(iPar))];
+          if iPar ~= numel(classifier.xValParam{xVal})
+            representation{xVal} = [representation{xVal} '|'];
+          end
         end
+      else
+        representation{xVal} = classifier.xValParam{xVal};
       end
     end
     set(gca,'XTickLabel',representation,...
