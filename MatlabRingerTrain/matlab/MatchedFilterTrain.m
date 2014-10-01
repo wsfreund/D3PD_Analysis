@@ -56,7 +56,7 @@ function matchedFilterStruct = MatchedFilterTrain(h0Data,h1Data,...
       %Output.INFO('Using mean of data as match parameter');
       matchedFilterStruct.matchS0 = mean(h0Data,2);
       matchedFilterStruct.matchS1 = mean(h1Data,2);
-    case 'maxVariance'
+    case 'maxCorrelation'
       %Output.INFO('Using maxVariance of data as match parameter');
       matchedFilterStruct.matchS0 = h0Data(:,getMaxCorrIdx(h0Data));
       matchedFilterStruct.matchS1 = h1Data(:,getMaxCorrIdx(h1Data));
@@ -100,12 +100,12 @@ function maxCoefIdx = getMaxCorrIdx(in)
     [~,maxCoefIdx] = max(sum(abs(corr(in,in))));
   catch 
     maxCorrCoef = 0;
-    maxCorrCoefIdx = 0;
+    maxCoefIdx = 0;
     for k = 1:size(in,2)
       corrCoefSum = sum(abs(corr(in,in(:,k))));
       if maxCorrCoef < corrCoefSum
         maxCorrCoef = corrCoefSum;
-        maxCorrCoefIdx = k;
+        maxCoefIdx = k;
       end
     end
   end
