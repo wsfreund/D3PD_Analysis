@@ -65,6 +65,17 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
     opts.saveStr = ['_' opts.saveStr];
   end
 
+  evalOnTst = false;
+
+  if opts.n_clusters_val == 0
+    evalOnTst = true;
+    if isfield(inputopts,'retrainAfterCrossValWithValData') && ...
+        inputopts.retrainAfterCrossValWithValData
+      Output.INFO('Turning retrain after cross validation to false')
+    end
+    opts.retrainAfterCrossValWithValData = false;
+  end
+
   % Make some checks:
   if (~isempty(opts.testBkgData) && ...
       opts.n_clusters_train + opts.n_clusters_val ...
@@ -290,6 +301,10 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
         'testBkgData',testBkgData_norm,...
         'xValParam',opts.paramOpts.xValParam(iParam),...
         'useTstAsValidation',false);
+
+      if evalOnTst
+        dataStruct.useTstAsValidation = true;
+      end
       
       %parfor cInit = 1:opts.nInit
       for cInit = 1:opts.nInit
