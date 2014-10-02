@@ -118,11 +118,11 @@ function [stats,data,handles]=getStats(varargin)
     else
       if ~opts.onlyForSgn
         % FIXME HACK FOR SEIXAS, CHANGE IT BACK TO OLD VALUE:
-        %[sgn,bkgFromSgn,bkg] = extractDataFrom(opts);
-        sgn = [];
-        bkg = [];
-        bkgFromSgn = [];
-        load ~/Documents/Doutorado/Materias/Det_Sinais/trab2/smallData/pedestal_FixedSeed_NoCellExtraInfo.d3pd.mat
+        [sgn,bkgFromSgn,bkg] = extractDataFrom(opts);
+        %sgn = [];
+        %bkg = [];
+        %bkgFromSgn = [];
+        %load ~/Documents/Doutorado/Materias/Det_Sinais/trab2/smallData/pedestal_FixedSeed_NoCellExtraInfo.d3pd.mat
 
         %eta=-2.5:5/(200-1):2.5;
         %phi=0:2*pi/(256-1):2*pi;
@@ -158,38 +158,50 @@ function [stats,data,handles]=getStats(varargin)
         %saveas(gcf,localFigPath,'png')
 
         basePath = '/Users/wsfreund/Documents/Doutorado/Materias/Det_Sinais/trab2/smallData/';
-        whiteningFile = [basePath 'whiteningNoiseData.mat'];
+        %whiteningFile = [basePath 'whiteningNoiseData.mat'];
 
-        eT = pedestal.el_E./cosh(pedestal.el_eta);
-        selectionMsk = sum(pedestal.el_rings_NCells==0)<30 & ...
-          abs(eT)<800;
-        pedestal.el_rings_E = pedestal.el_rings_E(:,...
-          selectionMsk);
-        pedestal.el_rings_NCells = pedestal.el_rings_NCells(:,...
-          selectionMsk);
+        %eT = pedestal.el_E./cosh(pedestal.el_eta);
+        %selectionMsk = sum(pedestal.el_rings_NCells==0)<30 & ...
+        %  abs(eT)<800;
+        %pedestal.el_rings_E = pedestal.el_rings_E(:,...
+        %  selectionMsk);
+        %pedestal.el_rings_NCells = pedestal.el_rings_NCells(:,...
+        %  selectionMsk);
 
-        halfData = round(size(pedestal.el_rings_E,2)/2)
+        %halfData = round(size(pedestal.el_rings_E,2)/2)
 
-        [whiteningMatrix,~,lambdasquare,~,explained,whiteningMean] = ...
-          pca(pedestal.el_rings_E(:,1:halfData)');
+        %[whiteningMatrix,~,lambdasquare,~,explained,whiteningMean] = ...
+        %  pca(pedestal.el_rings_E(:,1:halfData)');
 
-        whiteningMatrix = whiteningMatrix';
-        whiteningMean = whiteningMean';
-        whiteningScale = 1./sqrt(lambdasquare);
-
+        %whiteningMatrix = whiteningMatrix';
+        %whiteningMean = whiteningMean';
+        %whiteningScale = 1./sqrt(lambdasquare);
 
         %load(whiteningFile)
+        load([basePath 'projectionS0'])
+        load([basePath 'projectionS1'])
 
-        pedestalTrain.el_rings_E = bsxfun(@times,...
-          whiteningMatrix*bsxfun(...
-            @minus,pedestal.el_rings_E(:,1:halfData),whiteningMean),...
-            whiteningScale);
-        pedestalTest.el_rings_E = bsxfun(@times,...
-          whiteningMatrix*bsxfun(...
-            @minus,pedestal.el_rings_E(:,halfData+1:end),whiteningMean),...
-            whiteningScale);
-        pedestal.el_rings_E = pedestal.el_rings_E;
-        pedestal.el_rings_NCells = pedestal.el_rings_NCells;
+        sgn0.el_rings_E = phi0*bsxfun(...
+            @minus,sgn.el_rings_E,dataMean0);
+        bkg0.el_rings_E = phi0*bsxfun(...
+            @minus,bkg.el_rings_E,dataMean0);
+        sgn1.el_rings_E = phi1*bsxfun(...
+            @minus,sgn.el_rings_E,dataMean1);
+        bkg1.el_rings_E = phi1*bsxfun(...
+            @minus,bkg.el_rings_E,dataMean1);
+        %pedestal.el_rings_E = pedestal.el_rings_E;
+        %pedestal.el_rings_NCells = pedestal.el_rings_NCells;
+
+        %pedestalTrain.el_rings_E = bsxfun(@times,...
+        %  whiteningMatrix*bsxfun(...
+        %    @minus,pedestal.el_rings_E(:,1:halfData),whiteningMean),...
+        %    whiteningScale);
+        %pedestalTest.el_rings_E = bsxfun(@times,...
+        %  whiteningMatrix*bsxfun(...
+        %    @minus,pedestal.el_rings_E(:,halfData+1:end),whiteningMean),...
+        %    whiteningScale);
+        %pedestal.el_rings_E = pedestal.el_rings_E;
+        %pedestal.el_rings_NCells = pedestal.el_rings_NCells;
       else
         sgn = extractDataFrom(opts);
       end
@@ -199,7 +211,8 @@ function [stats,data,handles]=getStats(varargin)
   % FIXME HACK FOR SEIXAS, CHANGE IT BACK TO OLD VALUE:
   if ~opts.debug && ~opts.onlyForSgn
     %data = [sgn bkgFromSgn bkg] %pedestal pedestalTrain pedestalTest};
-    data = {sgn bkgFromSgn bkg pedestal pedestalTrain pedestalTest};
+    %data = {sgn bkgFromSgn bkg pedestal pedestalTrain pedestalTest};
+    data = {sgn0 bkg0 sgn1 bkg1};
   else
     data = sgn;
   end
@@ -250,18 +263,17 @@ function [stats,data,handles]=getStats(varargin)
     % FIXME this should be on part 1:
     switch cIdx
     case 1
-      stats(cIdx).dataLabel = 'Zee-Whitened';
+      stats(cIdx).dataLabel = 'ZeeEigenZee';
       stats(cIdx).color = [0.070588 0.40784 0.70196];
     case 2
-      stats(cIdx).dataLabel = 'BkgFromZee-Whitened';
+      stats(cIdx).dataLabel = 'BkgEigenZee';
       stats(cIdx).color = [.8 .8 .0];
-      continue
     case 3
-      stats(cIdx).dataLabel = 'JF17-Whitened';
+      stats(cIdx).dataLabel = 'ZeeEigenBkg';
       stats(cIdx).color = [.5 0 0];
     case 4
-      stats(cIdx).dataLabel = 'Pedestal';
-      stats(cIdx).color = [.5 0 0];
+      stats(cIdx).dataLabel = 'BkgEigenBkg';
+      stats(cIdx).color = [0 .5 0];
       % continue
     case 5
       stats(cIdx).dataLabel = 'Pedestal-Whitened-Train';
@@ -304,6 +316,11 @@ function [stats,data,handles]=getStats(varargin)
       stats(cIdx).dMax = max(cData.el_rings_E,[],2);
 
       % Get bounds:
+      if cIdx == 2
+        opts.histBoundMethod = 'fixed'
+      else
+        opts.histBoundMethod = 'auto'
+      end
       Output.INFO('Getting bounds...');
       [stats(cIdx).lowerBounds,stats(cIdx).upperBounds,stats(cIdx).perc,...
         stats(cIdx).underflows,stats(cIdx).zeroCounts,stats(cIdx).overflows,...
@@ -672,6 +689,11 @@ function [lowerBounds,upperBounds,perc,underflows,zeroCounts,...
     %
   case 'fixed'
     % TODO:
+    lowerBounds = min(cData.el_rings_E,[],2)';
+    upperBounds = max(cData.el_rings_E,[],2)';
+    % Count number of null energy rings on this ring:
+    perc = ones(100,1);
+    zeroCounts = sum(cData.el_rings_E==0,2);
   end
 
   % Now compute the bins:
