@@ -5,7 +5,7 @@ function filterAns = MatchedFilterPropagate(matchedFilterStruct,...
 %
 
 % - Creation Date: Wed, 01 Oct 2014
-% - Last Modified: Wed, 01 Oct 2014
+% - Last Modified: Thu, 02 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -15,11 +15,10 @@ function filterAns = MatchedFilterPropagate(matchedFilterStruct,...
   if ~isempty(opts.whiteningMean)
     % Remove noise mean:
     inData = bsxfun(@minus,inData,opts.whiteningMean);
-  end
-
-  if ~isempty(opts.whiteningMatrix)
-    % Remove noise mean:
+    % Decorrelate:
     inData = opts.whiteningMatrix*inData;
+    % White:
+    inData = bsxfun(@times,inData,opts.whiteningScale);
   end
 
   if strcmp(opts.implementation,'stochastic')
@@ -56,6 +55,31 @@ function filterAns = MatchedFilterPropagate(matchedFilterStruct,...
       scaledNoise0 = N0/2;
       scaledNoise1 = N0/2;
     end
+    %I0rNotNorm = (matchedFilterStruct.lambda0square(compArray0) ./ ...  % Scale factor
+    %    (matchedFilterStruct.lambda0square(compArray0)+scaledNoise0))* ...
+    %    (matchedFilterStruct.phi0(compArray0,:)* ... % Project data
+    %    bsxfun(@minus,inData,matchedFilterStruct.dataMean0)).^2
+    %
+
+    %I1rNotNorm = (matchedFilterStruct.lambda1square(compArray1)./...    % Scale factor
+    %    (matchedFilterStruct.lambda1square(compArray1)+scaledNoise1))* ...
+    %    (matchedFilterStruct.phi1(compArray1,:)* ... % Project data
+    %    bsxfun(@minus,inData,matchedFilterStruct.dataMean1)).^2
+
+    %I0Norm = I0rNotNorm/N0
+    %I1Norm = I1rNotNorm/N0
+
+    %for k=compArray0
+    %  keyboard
+    %  k
+    %  scaleFactor = (matchedFilterStruct.lambda0square(k) ./ ...  % Scale factor
+    %    (matchedFilterStruct.lambda0square(k)+scaledNoise0));
+    %  arrayKAns = (scaleFactor*matchedFilterStruct.phi0(k,:)*...
+    %  bsxfun(@minus,inData,matchedFilterStruct.dataMean0)).^2
+    %  arrayKAnsNorm = (scaleFactor*matchedFilterStruct.phi0(k,:)*...
+    %  bsxfun(@minus,inData,matchedFilterStruct.dataMean0)).^2/N0
+    %end
+
     Ir = ...
       ... % Ir0:
       (...
@@ -68,7 +92,9 @@ function filterAns = MatchedFilterPropagate(matchedFilterStruct,...
         (matchedFilterStruct.lambda1square(compArray1)+scaledNoise1))* ...
         (matchedFilterStruct.phi1(compArray1,:)* ... % Project data
         bsxfun(@minus,inData,matchedFilterStruct.dataMean1)).^2 ... % Take square from the projected data
-      )/N0; % And normalize everything by N0
+      )/N0 % And normalize everything by N0
+    Id
+
     % Filter answer is the sum from the deterministic component and 
     filterAns = Ir + Id; 
   end

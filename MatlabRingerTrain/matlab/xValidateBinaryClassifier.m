@@ -4,7 +4,7 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
 
 
 % - Creation Date: Fri, 26 Sep 2014
-% - Last Modified: Wed, 01 Oct 2014
+% - Last Modified: Thu, 02 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -205,9 +205,9 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
       % Only run train if validation is unique:
       while(true)
         perm_sgn = randperm(opts.n_clusters);
-        perm_sgn = 1:10;
+        %perm_sgn = 1:10;
         perm_bkg = randperm(opts.n_clusters);
-        perm_bkg = 1:10;
+        %perm_bkg = 1:10;
         if ~any(all(...
               bsxfun(@eq,alreadyValidatedPerm,[perm_sgn perm_bkg]),2 ...
             ))
@@ -417,8 +417,8 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
         std(reshape(timeMatrix(iParam,:,:),1,[]));
     end
 
-    %save(sprintf('xValidateAnalysis%s',opts.saveStr),...
-    %  'xValidateAnalysis','-append');
+    save(sprintf('xValidateAnalysis%s',opts.saveStr),...
+      'xValidateAnalysis','-append');
   
   end
 

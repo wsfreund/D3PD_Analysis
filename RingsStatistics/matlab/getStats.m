@@ -4,13 +4,13 @@ function [stats,data,handles]=getStats(varargin)
 %
 
 % - Creation Date: Tue, 19 Aug 2014
-% - Last Modified: Sun, 28 Sep 2014
+% - Last Modified: Thu, 02 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
   defopts = struct('truth_type',11,'truth_mothertype',23,...
     'trnSgnIsEM_mask',966493,'trnBkgIsEM_mask',93,...
-    'debug',true,'getStatsWrt','truth',...
+    'debug',false,'getStatsWrt','truth',...
     'sgnPath','~/Documents/Doutorado/CERN/D3PD/data/pileup_phase1/Zee_mc12_14TeV_d3pd_e1564_s1682_s1691_r4710_v17.mat',...
     'bkgPath','~/Documents/Doutorado/CERN/D3PD/data/pileup_phase1/JF17_mc12_14TeV_d3pd_e1313_s1682_s1691_r4710_v17.mat',...
     'sgn',[],'bkgFromSgn',[],'bkg',[],...
@@ -28,23 +28,23 @@ function [stats,data,handles]=getStats(varargin)
     'histPercentage',.99,'forceLowerBounds',true, ...
     'onlyForSgn',false,'chi2NBins',60,...
     ...
-    'drawMeanMedianMode',false,...%true,...
-    'drawRMSSkewnessKurt',false,...%true,...
-    'drawCorrelationMatrix',false,...%true,...
+    'drawMeanMedianMode',true,...%true,...
+    'drawRMSSkewnessKurt',true,...%true,...
+    'drawCorrelationMatrix',true,...%true,...
     'doCrossDataCorrelations',false,...
     'doNonLinearCorrelations',false,...
     'drawKLDiv',false,...
     'drawHistGrid',true,...%true,...
     ...
-    'doFit',true,'doFitRings',true,...
+    'doFit',false,'doFitRings',true,...
     'test_significance',0.05,'mle_confidence',.95,...
     'dist2test',{{'Gaussian','Lognormal','Laplace','Beta',...
     'Rayleigh','Gamma','Weibull','Exponential','Maxwell',...
     'Cauchy','BetaPrime','GenNormal_v1','SkewedNormal'}},...
     ...%'SkewedLaplace'}},...
-    'drawOneByOneFit',true,...
-    'drawEmpiricalData',false,...
-    'drawBestFit',true,...
+    'drawOneByOneFit',false,...
+    'drawEmpiricalData',true,...
+    'drawBestFit',false,...
     'nLayerRings',[8 64 8 8 4 4 4],...
     'layerLabels',{{'PS','EM1','EM2','EM3',...
     'HAD1','HAD2','HAD3'}},...
@@ -117,15 +117,89 @@ function [stats,data,handles]=getStats(varargin)
       load('~/Documents/Doutorado/CERN/D3PD/data/pileup_phase1/debug')
     else
       if ~opts.onlyForSgn
-        [sgn,bkgFromSgn,bkg] = extractDataFrom(opts);
+        % FIXME HACK FOR SEIXAS, CHANGE IT BACK TO OLD VALUE:
+        %[sgn,bkgFromSgn,bkg] = extractDataFrom(opts);
+        sgn = [];
+        bkg = [];
+        bkgFromSgn = [];
+        load ~/Documents/Doutorado/Materias/Det_Sinais/trab2/smallData/pedestal_FixedSeed_NoCellExtraInfo.d3pd.mat
+
+        %eta=-2.5:5/(200-1):2.5;
+        %phi=0:2*pi/(256-1):2*pi;
+        %[meshEta,meshPhi]=meshgrid(eta,phi);
+        %whiteFigure(true);
+        %cEvt=1;
+        %n=hist3([pedestal.el_cl_eta0Calo(pedestal.el_evtNum==cEvt)',pedestal.el_cl_phi0Calo(pedestal.el_evtNum==cEvt)'],{eta phi});
+        %spy(n)
+        %xlabel('\eta')
+        %ylabel('\phi')
+        %title('Seed generated grid, EvtNum = 1')
+        %localFigPath = [opts.outputFolder filesep 'seedGridGenEvt1'];
+        %epswrite(double(gcf),[localFigPath '.eps'],'Size','Screen')
+        %saveas(gcf,localFigPath,'png')
+        %cEvt=2;
+        %n=hist3([pedestal.el_cl_eta0Calo(pedestal.el_evtNum==cEvt)',pedestal.el_cl_phi0Calo(pedestal.el_evtNum==cEvt)'],{eta phi});
+        %spy(n)
+        %xlabel('\eta')
+        %ylabel('\phi')
+        %title('Seed generated grid, EvtNum = 2')
+        %localFigPath = [opts.outputFolder filesep 'seedGridGenEvt2'];
+        %epswrite(double(gcf),[localFigPath '.eps'],'Size','Screen')
+        %saveas(gcf,localFigPath,'png')
+        %localFigPath = [opts.outputFolder filesep 'reducedSetEvt'];
+        %n=hist3([pedestal.el_cl_eta0Calo',pedestal.el_cl_phi0Calo'],{eta phi});
+        %pcolor(meshEta,meshPhi,n')
+        %xlabel('\eta')
+        %ylabel('\phi')
+        %title('Seed generated grid (for all reduced set events)')
+        %colorbar
+        %localFigPath = [opts.outputFolder filesep 'seedGridGenAllReducedSetEvts'];
+        %epswrite(double(gcf),[localFigPath '.eps'],'Size','Screen')
+        %saveas(gcf,localFigPath,'png')
+
+        basePath = '/Users/wsfreund/Documents/Doutorado/Materias/Det_Sinais/trab2/smallData/';
+        whiteningFile = [basePath 'whiteningNoiseData.mat'];
+
+        eT = pedestal.el_E./cosh(pedestal.el_eta);
+        selectionMsk = sum(pedestal.el_rings_NCells==0)<30 & ...
+          abs(eT)<800;
+        pedestal.el_rings_E = pedestal.el_rings_E(:,...
+          selectionMsk);
+        pedestal.el_rings_NCells = pedestal.el_rings_NCells(:,...
+          selectionMsk);
+
+        halfData = round(size(pedestal.el_rings_E,2)/2)
+
+        [whiteningMatrix,~,lambdasquare,~,explained,whiteningMean] = ...
+          pca(pedestal.el_rings_E(:,1:halfData)');
+
+        whiteningMatrix = whiteningMatrix';
+        whiteningMean = whiteningMean';
+        whiteningScale = 1./sqrt(lambdasquare);
+
+
+        %load(whiteningFile)
+
+        pedestalTrain.el_rings_E = bsxfun(@times,...
+          whiteningMatrix*bsxfun(...
+            @minus,pedestal.el_rings_E(:,1:halfData),whiteningMean),...
+            whiteningScale);
+        pedestalTest.el_rings_E = bsxfun(@times,...
+          whiteningMatrix*bsxfun(...
+            @minus,pedestal.el_rings_E(:,halfData+1:end),whiteningMean),...
+            whiteningScale);
+        pedestal.el_rings_E = pedestal.el_rings_E;
+        pedestal.el_rings_NCells = pedestal.el_rings_NCells;
       else
         sgn = extractDataFrom(opts);
       end
     end
   end
 
+  % FIXME HACK FOR SEIXAS, CHANGE IT BACK TO OLD VALUE:
   if ~opts.debug && ~opts.onlyForSgn
-    data = [sgn bkgFromSgn bkg];
+    %data = [sgn bkgFromSgn bkg] %pedestal pedestalTrain pedestalTest};
+    data = {sgn bkgFromSgn bkg pedestal pedestalTrain pedestalTest};
   else
     data = sgn;
   end
@@ -142,35 +216,59 @@ function [stats,data,handles]=getStats(varargin)
     stats = struct('dMean',cell(1,numel(data)));
   end
 
-  for cIdx = 1:numel(data)
-    if size(data(cIdx).el_rings_E,2)>opts.runForNEvents
-      fieldNames = fieldnames(data(cIdx))';
-      for field = fieldNames
-        name = field{1};
-        data(cIdx).(name) = data(cIdx).(name)(:,1:opts.runForNEvents);
-        stats(cIdx).runForNEvents = opts.runForNEvents;
-      end
-    end
-  end
+  % FIXME Uncomment this
+  %for cIdx = 1:numel(data)
+  %  if size(data(cIdx).el_rings_E,2)>opts.runForNEvents
+  %    fieldNames = fieldnames(data(cIdx))';
+  %    for field = fieldNames
+  %      name = field{1};
+  %      data(cIdx).(name) = data(cIdx).(name)(:,1:opts.runForNEvents);
+  %      stats(cIdx).runForNEvents = opts.runForNEvents;
+  %    end
+  %  end
+  %end
 
   handles = struct('figH_histGrid',cell(1,numel(data)));
   layerCode = {'ps' 'em1' 'em2' 'em3' 'had1' 'had2' 'had3'};
 
   for cIdx = 1:numel(data)
 
-    cData = data(cIdx);
+    if iscell(data(cIdx))
+      cData = data{cIdx};
+    else
+      cData = data(cIdx);
+    end
+
+    if isempty(cData)
+      continue;
+    end
+
+    if isempty(cData.el_rings_E)
+      continue;
+    end
 
     % FIXME this should be on part 1:
     switch cIdx
     case 1
-      stats(cIdx).dataLabel = 'Zee';
+      stats(cIdx).dataLabel = 'Zee-Whitened';
       stats(cIdx).color = [0.070588 0.40784 0.70196];
     case 2
-      stats(cIdx).dataLabel = 'BkgFromZee';
+      stats(cIdx).dataLabel = 'BkgFromZee-Whitened';
       stats(cIdx).color = [.8 .8 .0];
+      continue
     case 3
-      stats(cIdx).dataLabel = 'JF17';
+      stats(cIdx).dataLabel = 'JF17-Whitened';
       stats(cIdx).color = [.5 0 0];
+    case 4
+      stats(cIdx).dataLabel = 'Pedestal';
+      stats(cIdx).color = [.5 0 0];
+      % continue
+    case 5
+      stats(cIdx).dataLabel = 'Pedestal-Whitened-Train';
+      stats(cIdx).color = [.8 .8 0];
+    case 6
+      stats(cIdx).dataLabel = 'Pedestal-Whitened-Test';
+      stats(cIdx).color = [0.070588 0.40784 0.70196];
     end
 
     if doPart1
@@ -183,7 +281,11 @@ function [stats,data,handles]=getStats(varargin)
       stats(cIdx).dMedian = median(cData.el_rings_E,2);
       stats(cIdx).dStd = std(cData.el_rings_E,0,2);
       [stats(cIdx).nRings,stats(cIdx).nSamples]=size(cData.el_rings_E);
-      zerosIdx = cData.el_rings_E==0;
+      if isfield(cData,'el_rings_NCells')
+        zerosIdx = cData.el_rings_NCells==0;
+      else
+        zerosIdx = cData.el_rings_E==0;
+      end
       stats(cIdx).dNonZeroesMean   = zeros(1,stats(cIdx).nRings);
       stats(cIdx).dNonZeroesMode   = zeros(1,stats(cIdx).nRings);
       stats(cIdx).dNonZeroesMedian = zeros(1,stats(cIdx).nRings);
@@ -232,7 +334,11 @@ function [stats,data,handles]=getStats(varargin)
     stats(cIdx).dKurtsosis = kurtosis(cData.el_rings_E,1,2)-3;
     stats(cIdx).dNonZeroesSkewness = zeros(1,stats(cIdx).nRings);
     stats(cIdx).dNonZeroesKurtosis = zeros(1,stats(cIdx).nRings);
-    zerosIdx = cData.el_rings_E==0;
+    if isfield(cData,'el_rings_NCells')
+      zerosIdx = cData.el_rings_NCells==0;
+    else
+      zerosIdx = cData.el_rings_E==0;
+    end
     for cRing = 1:stats(cIdx).nRings
       stats(cIdx).dNonZeroesSkewness(cRing) = skewness(...
         cData.el_rings_E(cRing,~zerosIdx(cRing,:)),1,2);
@@ -245,7 +351,11 @@ function [stats,data,handles]=getStats(varargin)
     stats(cIdx).dNoOutlierNonZeroesStd = zeros(1,stats(cIdx).nRings);
     stats(cIdx).dNoOutlierNonZeroesSkewness = zeros(1,stats(cIdx).nRings);
     stats(cIdx).dNoOutlierNonZeroesKurtosis = zeros(1,stats(cIdx).nRings);
-    zerosIdx = cData.el_rings_E==0;
+    if isfield(cData,'el_rings_NCells')
+      zerosIdx = cData.el_rings_NCells==0;
+    else
+      zerosIdx = cData.el_rings_E==0;
+    end
     for cRing = 1:stats(cIdx).nRings
       goodIdx = cData.el_rings_E(cRing,:)>stats(cIdx).lowerBounds(cRing) & ...
         cData.el_rings_E(cRing,:)<stats(cIdx).upperBounds(cRing);
@@ -279,11 +389,11 @@ function [stats,data,handles]=getStats(varargin)
         handles(cIdx).fitTextH]...
         = getHistGrid(stats(cIdx),opts);
 
-      % Correlation plots:
-      %[stats(cIdx).linearCorrelations,...
-      %  stats(cIdx).nonLinearCorrelations,...
-      %  handles(cIdx).figH,handles(cIdx).figNonLinearH] = ...
-      %  getCorrelations(cData,stats(cIdx),opts);
+       % Correlation plots:
+      [stats(cIdx).linearCorrelations,...
+        stats(cIdx).nonLinearCorrelations,...
+        handles(cIdx).figH,handles(cIdx).figNonLinearH] = ...
+        getCorrelations(cData,stats(cIdx),opts);
         
 
       % TODO KL-Div
@@ -451,7 +561,11 @@ function [lowerBounds,upperBounds,perc,underflows,zeroCounts,...
     bounds = [2:10];
     for cRing = 1:cStat.nRings
       % Get non zero rings:
-      rings = cData.el_rings_E(cRing,cData.el_rings_E(cRing,:)~=0);
+      if isfield(cData,'el_rings_NCells')
+        rings = cData.el_rings_E(cRing,cData.el_rings_NCells(cRing,:)~=0);
+      else
+        rings = cData.el_rings_E(cRing,cData.el_rings_E(cRing,:)~=0);
+      end
       nonZeroDataSize = size(rings,2);
       % Count number of null energy rings on this ring:
       zeroCounts(cRing) = (dataSize - nonZeroDataSize)/dataSize;
@@ -1032,11 +1146,12 @@ function [dNonZeroesMode,figH,axesH,ringHistH,ringEstH,...
   %  hColumns = 2;
   %end
 
-  if isempty(jobVec)
-    Output.INFO(['It will not get hist information '...
-      'as it was not required by user.']);
-    return;
-  end
+  % FIXME This is not working as expected
+  %if isempty(jobVec)
+  %  Output.INFO(['It will not get hist information '...
+  %    'as it was not required by user.']);
+  %  return;
+  %end
 
   for jIdx = 1:numel(jobVec)
 
@@ -1472,17 +1587,29 @@ function [figH,axesH,barsH]=plotMeanMedianMode(stats,opts)
 
   barsH = zeros(numel(stats),3);
 
-  nonZeroesMean = zeros(stats(1).nRings,numel(stats));
-  nonZeroesMedian = zeros(stats(1).nRings,numel(stats));
-  nonZeroesMode = zeros(stats(1).nRings,numel(stats));
+  nonZeroesMean = zeros(stats(end).nRings,numel(stats));
+  nonZeroesMedian = zeros(stats(end).nRings,numel(stats));
+  nonZeroesMode = zeros(stats(end).nRings,numel(stats));
   color = cell(numel(stats),1);
 
+  removeIdx = [];
   for  cStatI = 1:numel(stats)
-    nonZeroesMean(:,cStatI) = stats(cStatI).dNonZeroesMean(:);
-    nonZeroesMedian(:,cStatI) = stats(cStatI).dNonZeroesMedian(:);
-    nonZeroesMode(:,cStatI) = stats(cStatI).dNonZeroesMode(:);
-    color{cStatI} = stats(cStatI).color;
+    if ~isempty(stats(cStatI).nRings)
+      nonZeroesMean(:,cStatI) = stats(cStatI).dNonZeroesMean(:);
+      nonZeroesMedian(:,cStatI) = stats(cStatI).dNonZeroesMedian(:);
+      nonZeroesMode(:,cStatI) = stats(cStatI).dNonZeroesMode(:);
+      color{cStatI} = stats(cStatI).color;
+    else
+      removeIdx = [removeIdx cStatI];
+    end
   end
+
+  nonZeroesMean(:,removeIdx) = [];
+  nonZeroesMedian(:,removeIdx) = [];
+  nonZeroesMode(:,removeIdx) = [];
+  stats(removeIdx) = [];
+  color(removeIdx) = [];
+  barsH(removeIdx,:) = [];
 
   axesH = zeros(3,1);
 
@@ -1574,26 +1701,42 @@ function [figH,axesH,barsH,...
   barsH = zeros(numel(stats),3);
   barsHNoOutlier = zeros(numel(stats),3);
 
-  nonZeroesStd = zeros(stats(1).nRings,numel(stats));
-  nonZeroesSkewness = zeros(stats(1).nRings,numel(stats));
-  nonZeroesKurtosis = zeros(stats(1).nRings,numel(stats));
-  nonZeroesNoOutlierStd = zeros(stats(1).nRings,numel(stats));
-  nonZeroesNoOutlierSkewness = zeros(stats(1).nRings,numel(stats));
-  nonZeroesNoOutlierKurtosis = zeros(stats(1).nRings,numel(stats));
+  nonZeroesStd = zeros(stats(end).nRings,numel(stats));
+  nonZeroesSkewness = zeros(stats(end).nRings,numel(stats));
+  nonZeroesKurtosis = zeros(stats(end).nRings,numel(stats));
+  nonZeroesNoOutlierStd = zeros(stats(end).nRings,numel(stats));
+  nonZeroesNoOutlierSkewness = zeros(stats(end).nRings,numel(stats));
+  nonZeroesNoOutlierKurtosis = zeros(stats(end).nRings,numel(stats));
   color = cell(numel(stats),1);
 
+  removeIdx = [];
   for  cStatI = 1:numel(stats)
-    nonZeroesStd(:,cStatI) = stats(cStatI).dNonZeroesStd(:);
-    nonZeroesSkewness(:,cStatI) = stats(cStatI).dNonZeroesSkewness(:);
-    nonZeroesKurtosis(:,cStatI) = stats(cStatI).dNonZeroesKurtosis(:);
-    nonZeroesNoOutlierStd(:,cStatI) = ...
-      stats(cStatI).dNoOutlierNonZeroesStd(:);
-    nonZeroesNoOutlierSkewness(:,cStatI) = ...
-      stats(cStatI).dNoOutlierNonZeroesSkewness(:);
-    nonZeroesNoOutlierKurtosis(:,cStatI) = ...
-      stats(cStatI).dNoOutlierNonZeroesKurtosis(:);
-    color{cStatI} = stats(cStatI).color;
+    if ~isempty(stats(cStatI).nRings)
+      nonZeroesStd(:,cStatI) = stats(cStatI).dNonZeroesStd(:);
+      nonZeroesSkewness(:,cStatI) = stats(cStatI).dNonZeroesSkewness(:);
+      nonZeroesKurtosis(:,cStatI) = stats(cStatI).dNonZeroesKurtosis(:);
+      nonZeroesNoOutlierStd(:,cStatI) = ...
+        stats(cStatI).dNoOutlierNonZeroesStd(:);
+      nonZeroesNoOutlierSkewness(:,cStatI) = ...
+        stats(cStatI).dNoOutlierNonZeroesSkewness(:);
+      nonZeroesNoOutlierKurtosis(:,cStatI) = ...
+        stats(cStatI).dNoOutlierNonZeroesKurtosis(:);
+      color{cStatI} = stats(cStatI).color;
+    else
+      removeIdx = [removeIdx cStatI];
+    end
   end
+
+  nonZeroesStd(:,removeIdx) = [];
+  nonZeroesSkewness(:,removeIdx) = [];
+  nonZeroesKurtosis(:,removeIdx) = [];
+  nonZeroesNoOutlierStd(:,removeIdx) = [];
+  nonZeroesNoOutlierSkewness(:,removeIdx) = [];
+  nonZeroesNoOutlierKurtosis(:,removeIdx) = [];
+  stats(removeIdx) = [];
+  color(removeIdx) = [];
+  barsH(removeIdx,:) = [];
+  barsHNoOutlier(removeIdx,:) = [];
 
   axesH = zeros(3,1);
 
@@ -1699,19 +1842,28 @@ function [linearCorrelations,nonLinearCorrelations,...
   rings = cData.el_rings_E';
 
   linearCorrelations = corr(rings,rings);
+  for k=1:size(rings,2)
+    linearCorrelations(k,k) = 0;
+  end
   if opts.doNonLinearCorrelations
     nonLinearCorrelations = corr(rings,tanh(rings));
+  else
+    nonLinearCorrelations = [];
   end
 
   titleLabel = ['Rings Correlation for dataset: \bf'...
     cStats.dataLabel];
-  figH = plotMatrix(linearCorrelations,titleLabel,opts,[-1 1]);
+  %FIXME
+  %figH = plotMatrix(linearCorrelations,titleLabel,opts,[-1 1]);
+  figH = plotMatrix(linearCorrelations,titleLabel,opts);
 
   % Draw non-linear correlations:
   if opts.doNonLinearCorrelations
     titleLabel = ['Non-linear ' titleLabel];
     figNonLinearH = plotMatrix(nonLinearCorrelations,...
       titleLabel,opts,[-1 1]);
+  else
+    figNonLinearH = 0;
   end
 
   if opts.savePlots
@@ -1905,7 +2057,7 @@ function layer = whichLayer(cRing,method)
 %
 
 % - Creation Date: Tue, 26 Aug 2014
-% - Last Modified: Sun, 28 Sep 2014
+% - Last Modified: Thu, 02 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
@@ -1930,7 +2082,7 @@ function out = getStatsInfoFor(mat,layer,method,nLayerRings,layerCode)
 %
 
 % - Creation Date: Wed, 20 Aug 2014
-% - Last Modified: Sun, 28 Sep 2014
+% - Last Modified: Thu, 02 Oct 2014
 % - Author(s): 
 %   - W.S.Freund <wsfreund_at_gmail_dot_com> 
 
