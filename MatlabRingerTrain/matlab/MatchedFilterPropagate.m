@@ -92,8 +92,7 @@ function filterAns = MatchedFilterPropagate(matchedFilterStruct,...
         (matchedFilterStruct.lambda1square(compArray1)+scaledNoise1))* ...
         (matchedFilterStruct.phi1(compArray1,:)* ... % Project data
         bsxfun(@minus,inData,matchedFilterStruct.dataMean1)).^2 ... % Take square from the projected data
-      )/N0 % And normalize everything by N0
-    Id
+      )/N0; % And normalize everything by N0
 
     % Filter answer is the sum from the deterministic component and 
     filterAns = Ir + Id; 

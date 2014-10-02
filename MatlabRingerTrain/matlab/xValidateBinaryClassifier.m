@@ -418,7 +418,7 @@ function xValidateAnalysis = xValidateBinaryClassifier(...
     end
 
     save(sprintf('xValidateAnalysis%s',opts.saveStr),...
-      'xValidateAnalysis','-append');
+      'xValidateAnalysis');
   
   end
 
