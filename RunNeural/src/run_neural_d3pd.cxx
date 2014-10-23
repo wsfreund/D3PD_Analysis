@@ -351,7 +351,7 @@ void help() {
             << "    --dataset [\"background\",\"signal\"] >"" \n"
             << "      If doing only test clusters, it is needed to sinalize which dataset is being propagated.\n"
             << "    --doUseTrnInfoOnNNFile [bool] >1 \n"
-            << "      If the file was created with d3pdexport.m, than the training information can be read directly on it.\n"
+            << "      If the file was created with d3pdexport.m, then the training information can be read directly on it.\n"
             << "    --sgnCluster_size [unsigned] >0 \n"
             << "      Size of signal clusters.\n"
             << "    --bkgCluster_size [unsigned] >0 \n"
@@ -391,7 +391,7 @@ Neural* readNN(opts &setOpts){
   //while(netFile.peek()==' ')
   //  netFile.ignore();
 #ifdef DEBUG
-  std::cout << "Determing NodesVector values." << std::endl;
+  std::cout << "Determining NodesVector values." << std::endl;
 #endif
   netFile.getline(firstInput,200,'=');
   if(!strcmp(firstInput,"self.NodesVector")){
@@ -429,7 +429,7 @@ Neural* readNN(opts &setOpts){
   netFile.ignore(10000,'\n');
 
 #ifdef DEBUG
-  std::cout << "Determing WeightVector values." << std::endl;
+  std::cout << "Determining WeightVector values." << std::endl;
 #endif
   netFile.getline(firstInput,200,'=');
   if(!strcmp(firstInput,"self.WeightVector")){
@@ -465,7 +465,7 @@ Neural* readNN(opts &setOpts){
   netFile.getline(firstInput,200,'=');
 
 #ifdef DEBUG
-  std::cout << "Determing BiasVector values." << std::endl;
+  std::cout << "Determining BiasVector values." << std::endl;
 #endif
   if(!strcmp(firstInput,"self.BiasVector")){
     netFile.ignore();
@@ -497,7 +497,7 @@ Neural* readNN(opts &setOpts){
 
   if(setOpts.doUseTrnInfoOnNNFile){
 #ifdef DEBUG
-    std::cout << "Determing sgnCluster_size." << std::endl;
+    std::cout << "Determining sgnCluster_size." << std::endl;
 #endif
     if(setOpts.doTestOnly){
       netFile.ignore(10000,'\n');
@@ -512,7 +512,7 @@ Neural* readNN(opts &setOpts){
       }
 
 #ifdef DEBUG
-      std::cout << "Determing bkgCluster_size." << std::endl;
+      std::cout << "Determining bkgCluster_size." << std::endl;
 #endif
 
       netFile.getline(firstInput,200,'=');
@@ -526,7 +526,7 @@ Neural* readNN(opts &setOpts){
       }
 
 #ifdef DEBUG
-      std::cout << "Determing sgn_tst_clusters." << std::endl;
+      std::cout << "Determining sgn_tst_clusters." << std::endl;
 #endif
       netFile.getline(firstInput,200,'=');
       if(!strcmp(firstInput,"self.sgn_tst_clusters")){
@@ -560,7 +560,7 @@ Neural* readNN(opts &setOpts){
       netFile.ignore(10000,'\n');
 
 #ifdef DEBUG
-      std::cout << "Determing bkg_tst_clusters." << std::endl;
+      std::cout << "Determining bkg_tst_clusters." << std::endl;
 #endif
       netFile.getline(firstInput,200,'=');
       if(!strcmp(firstInput,"self.bkg_tst_clusters")){
@@ -594,7 +594,7 @@ Neural* readNN(opts &setOpts){
       netFile.ignore(10000,'\n');
 
 #ifdef DEBUG
-      std::cout << "Determing ringerNNTrnWrt." << std::endl;
+      std::cout << "Determining ringerNNTrnWrt." << std::endl;
 #endif
       netFile.getline(firstInput,200,'=');
       if(!strcmp(firstInput,"self.ringerNNTrnWrt")){
@@ -608,7 +608,7 @@ Neural* readNN(opts &setOpts){
 
       if(setOpts.ringerNNTrnWrt==Truth){
 #ifdef DEBUG
-        std::cout << "Determing sgnTrnPdgIdType." << std::endl;
+        std::cout << "Determining sgnTrnPdgIdType." << std::endl;
 #endif
         netFile.getline(firstInput,200,'=');
         if(!strcmp(firstInput,"self.sgnTrnPdgIdType")){
@@ -620,7 +620,7 @@ Neural* readNN(opts &setOpts){
         }
 
 #ifdef DEBUG
-        std::cout << "Determing sgnTrnMotherPdgIdType." << std::endl;
+        std::cout << "Determining sgnTrnMotherPdgIdType." << std::endl;
 #endif
         netFile.getline(firstInput,200,'=');
         if(!strcmp(firstInput,"self.sgnTrnMotherPdgIdType")){
@@ -634,7 +634,7 @@ Neural* readNN(opts &setOpts){
       }else if(setOpts.ringerNNTrnWrt==Standard_Eg){// TODO Else set logic to StandardEg
 
 #ifdef DEBUG
-        std::cout << "Determing sgnTrnIsEM_mask." << std::endl;
+        std::cout << "Determining sgnTrnIsEM_mask." << std::endl;
 #endif
         netFile.getline(firstInput,200,'=');
         if(!strcmp(firstInput,"self.sgnTrnIsEM_mask")){
@@ -646,7 +646,7 @@ Neural* readNN(opts &setOpts){
         }
 
 #ifdef DEBUG
-        std::cout << "Determing bkgTrnIsEM_mask." << std::endl;
+        std::cout << "Determining bkgTrnIsEM_mask." << std::endl;
 #endif
         netFile.getline(firstInput,200,'=');
         if(!strcmp(firstInput,"self.bkgTrnIsEM_mask")){
@@ -700,7 +700,7 @@ void runNN(const Neural *the_nn,const opts &setOpts){
 
   bool truthAvailable = inputChain->FindBranch("el_truth_type");
   if(setOpts.doTestOnly && setOpts.ringerNNTrnWrt == Truth && !truthAvailable){
-    std::cerr << "Truth not available on this dataset, and it was demanded to use it info to check test clusters." << std::endl;
+    std::cerr << "Truth not available on this dataset, and it was demanded to use its info to check test clusters." << std::endl;
     throw BAD_INPUT;
   }
 

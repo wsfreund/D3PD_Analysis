@@ -4,6 +4,9 @@ include $(shell root-config --etcdir)/Makefile.arch
 #LD := $(shell root-config --ld)
 #OutPutOpt := -o
 
+SHELL = /bin/bash
+#.SHELLFLAGS = -x
+
 #INCFLAGS := -pthread -m64 -DDEBUG=${DEBUG} -I/Users/wsfreund/root/include
 
 SPACE :=
@@ -190,9 +193,24 @@ libraries: $(libraries) includes directories
 includes: $(includes)
 	@cp $^ $(out_inc_dir_name)
 
+#$(info Matlab files are: $(matlab_files))
 .PHONY: matlab 
 matlab: $(matlab_files)
-	@cp $^ $(matlab_out_dir_name)
+	@for f in `echo "$^"`; do\
+		base=`basename $$f`;\
+		if [[ ! -f "$(matlab_dir_name)/$${base}" ]]; then\
+			ln $$f $(matlab_dir_name)/$${base}; \
+		fi;\
+	done
+	@#set -x;for f in `echo "$^"`; do\
+		base=`basename $$f`;\
+		if [[ ! -f "$(matlab_dir_name)/$${base}" ]]; then\
+			ln -s $$f $(matlab_dir_name)/$${base}; \
+		fi;\
+	done;set +x
+
+%.m:
+	ln -s $(matlab_dir_name)/$(notdir $@) $@
 
 .PHONY: directories
 directories:
