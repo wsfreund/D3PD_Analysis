@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
   running_opts.doHtmlOutput = true;
   running_opts.doTexOutput = true;
   running_opts.doROC = true;
-  running_opts.doUseRingerTestOnStd = false;
+  running_opts.doUseRingerTestOnStd = true;
   running_opts.anaName = "CaloRinger_Analysis_ElectronVsJet";
   running_opts.anaDir = "";
   running_opts.high_resolution_bin = 10000;
