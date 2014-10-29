@@ -395,7 +395,8 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   reqEffMarkerStyle[eg_key::Medium] = kDot; reqEffMarkerStyle[eg_key::Tight] = kDot;
 
   // Colors for algorithms for same requirement comparison:
-  compEffColor[eg_key::OffRinger] = kBlack; compEffColor[eg_key::OffEgamma] = kRed;
+  compEffColor[eg_key::OffRinger] = kRed;
+  compEffColor[eg_key::OffEgamma] = kBlack;
 
   // Marker styles for algorithms for same requirement comparison:
   compEffMarkerStyle[eg_key::OffRinger] = kDot; compEffMarkerStyle[eg_key::OffEgamma] = kDot;
