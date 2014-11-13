@@ -1333,7 +1333,7 @@ void D3PDAnalysis::draw(){
   drawEfficiencyPlots(); outFile->Flush();
   drawCorrelationPlots(); outFile->Flush();
   if(doForceRingerThres||(!doForceRingerThres&&doROC)) {drawROC(); outFile->Flush();}
-  if(doHtmlOutput) print_html_tables();
+  //if(doHtmlOutput) print_html_tables();
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::draw()" << std::endl;
@@ -1663,8 +1663,6 @@ void D3PDAnalysis::drawEfficiencyPlots(){
   effBaseDir = outFile->mkdir(efficiencyDirName.c_str());
   effBaseDir->cd();
 
-
-
   // Draw TEfficiency to force graphs creation, and remove x erros bars:
   for(size_t i = 0; i < ds_size;++i){
     TCanvas dummy("","");
@@ -1699,6 +1697,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
       canvas.Divide(1,2);
       TLegend legend(.01,.48,.32,.52);
       legend.SetNColumns(req_size-1);
+      Double_t min_y, max_y;
       for(size_t n = 1; n < req_size;++n){
         // Set marker and colors
         for(size_t j = 0; j < var_size;++j){
@@ -1722,6 +1721,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram
+          min_y = 1., max_y = .0;
+          for(size_t n = 1; n < req_size;++n){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Et))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           et_graph->Draw("samepze0");
           gPad->SetGrid();
         }else {
@@ -1742,6 +1753,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram =======
+          min_y = 1., max_y = .0;
+          for(size_t n = 1; n < req_size;++n){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Eta))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           eta_graph->Draw("samepze0");
           gPad->SetGrid();
         }else{
@@ -1766,6 +1789,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
         ( ds[i] + std::string(" Algorithms Comparison for ") + req[n] ).c_str());
       canvas.Divide(1,2);
       TLegend legend(.01,.45,.32,.53);
+      Double_t min_y, max_y;
       for(size_t m = 0; m < alg_size;++m){
         for(size_t j = 0; j < var_size;++j){
           Key_t1 key(ds[i],alg[m],req[n],var[j]); // Numerator Key
@@ -1793,6 +1817,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram
+          min_y = 1., max_y = .0;
+          for(size_t m = 0; m < alg_size;++m){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Et))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           et_graph->Draw("samepze0");
           pad->SetGrid();
         }else {
@@ -1804,6 +1840,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
         garbageCollector.push_back(eta_graph);
         // Deslocate clone to make it possible to see overlaps:
         deslocate(eta_graph,(m*.005-0.0025));
+                
         if(!m){
           TH1F *th1 = pad->DrawFrame(var_lb[eg_key::Eta], 0., var_ub[eg_key::Eta], 1.);
           th1->GetYaxis()->SetTitle(yAxis_special[i].c_str());
@@ -1812,6 +1849,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram
+          min_y = 1., max_y = .0;
+          for(size_t m = 0; m < alg_size;++m){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Eta))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           eta_graph->Draw("samepze0");
           pad->SetGrid();
         }else{
