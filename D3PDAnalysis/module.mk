@@ -39,7 +39,7 @@ $(out_dir_name)/RootDictionary.cpp: $(D3PD_DIRBASE)/$(include_dir_name)/LinkDef.
 	@echo "**"
 	rootcint -f $@ -c $<
 
-# Hack to avoid need to re-run make file following code generation target.
+# Avoid need to re-run make file following code generation target.
 $(out_dir_name)/RootDictionary.o: $(out_dir_name)/RootDictionary.cpp
 	@echo "**"
 	@echo "** Compiling $@" 

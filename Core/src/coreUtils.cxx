@@ -113,31 +113,77 @@ const std::string currentDateTime() {
 //========================================================================
 //========================================================================
 //========================================================================
-void enableUsedBranches(TTree *d3pd){
+void enableUsedBranches(TTree *d3pd, bool usePhoton){
 
   d3pd->SetBranchStatus("*",0);  // disable all branches            
-  if(d3pd->FindBranch("el_truth_type")){
-    d3pd->SetBranchStatus("el_truth_type",1);  // activate branchname        
-    d3pd->SetBranchStatus("el_truth_mothertype",1);  // activate branchname        
-    d3pd->SetBranchStatus("el_truth_status",1);  // activate branchname        
-    d3pd->SetBranchStatus("el_truth_barcode",1);  // activate branchname        
-    d3pd->SetBranchStatus("el_truth_motherbarcode",1);  // activate branchname        
-    d3pd->SetBranchStatus("el_truth_matched",1);  // activate branchname        
+  if (!usePhoton){
+    if(d3pd->FindBranch("el_truth_type")){
+      d3pd->SetBranchStatus("el_truth_type",1);  // activate branchname        
+      d3pd->SetBranchStatus("el_truth_mothertype",1);  // activate branchname        
+      d3pd->SetBranchStatus("el_truth_status",1);  // activate branchname        
+      d3pd->SetBranchStatus("el_truth_barcode",1);  // activate branchname        
+      d3pd->SetBranchStatus("el_truth_motherbarcode",1);  // activate branchname        
+      d3pd->SetBranchStatus("el_truth_matched",1);  // activate branchname        
+    }
+    if(d3pd->FindBranch("el_is_testCluster")){
+      d3pd->SetBranchStatus("el_is_testCluster",1);  // activate branchname        
+    }
+    d3pd->SetBranchStatus("el_n",1);  // activate branchname        
+    d3pd->SetBranchStatus("el_eta",1);  // activate branchname       
+    d3pd->SetBranchStatus("el_cl_eta0Calo",1);  // activate branchname       
+    d3pd->SetBranchStatus("el_phi",1);  // activate branchname       
+    d3pd->SetBranchStatus("el_cl_phi0Calo",1);  // activate branchname       
+    d3pd->SetBranchStatus("el_E",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_reta",1);  // activate branchname      
+    d3pd->SetBranchStatus("el_emaxs1",1);  // activate branchname    
+    d3pd->SetBranchStatus("el_Emax2",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_Ethad1",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_ws3",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_weta2",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_isEM",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_ringernn",1);  // activate branchname   
+    d3pd->SetBranchStatus("el_rings_E",1);  // activate branchname   
+    // Enable ringer cells branches if they are available:
+    if(d3pd->FindBranch("el_rings_NCells")){
+      d3pd->SetBranchStatus("el_rings_NCells",1);
+      d3pd->SetBranchStatus("el_rings_CellsEt",1);
+      d3pd->SetBranchStatus("el_rings_CellsEta",1);
+      d3pd->SetBranchStatus("el_rings_CellsPhi",1);
+    }
+  }else{
+    if(d3pd->FindBranch("ph_truth_type")){
+      d3pd->SetBranchStatus("ph_truth_type",1);  // activate branchname        
+      d3pd->SetBranchStatus("ph_truth_mothertype",1);  // activate branchname        
+      d3pd->SetBranchStatus("ph_truth_status",1);  // activate branchname        
+      d3pd->SetBranchStatus("ph_truth_barcode",1);  // activate branchname        
+      d3pd->SetBranchStatus("ph_truth_motherbarcode",1);  // activate branchname        
+      d3pd->SetBranchStatus("ph_truth_matched",1);  // activate branchname        
+    }
+    if(d3pd->FindBranch("ph_is_testCluster")){
+      d3pd->SetBranchStatus("ph_is_testCluster",1);  // activate branchname        
+    }
+    d3pd->SetBranchStatus("ph_n",1);  // activate branchname        
+    d3pd->SetBranchStatus("ph_eta",1);  // activate branchname       
+    d3pd->SetBranchStatus("ph_cl_eta0Calo",1);  // activate branchname       
+    d3pd->SetBranchStatus("ph_phi",1);  // activate branchname       
+    d3pd->SetBranchStatus("ph_cl_phi0Calo",1);  // activate branchname       
+    d3pd->SetBranchStatus("ph_E",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_reta",1);  // activate branchname      
+    d3pd->SetBranchStatus("ph_emaxs1",1);  // activate branchname    
+    d3pd->SetBranchStatus("ph_Emax2",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_Ethad1",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_ws3",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_weta2",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_isEM",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_ringernn",1);  // activate branchname   
+    d3pd->SetBranchStatus("ph_rings_E",1);  // activate branchname   
+    // Enable ringer cells branches if they are available:
+    if(d3pd->FindBranch("ph_rings_NCells")){
+      d3pd->SetBranchStatus("ph_rings_NCells",1);
+      d3pd->SetBranchStatus("ph_rings_CellsEt",1);
+      d3pd->SetBranchStatus("ph_rings_CellsEta",1);
+      d3pd->SetBranchStatus("ph_rings_CellsPhi",1);
+    }
   }
-  if(d3pd->FindBranch("el_is_testCluster")){
-    d3pd->SetBranchStatus("el_is_testCluster",1);  // activate branchname        
-  }
-  d3pd->SetBranchStatus("el_n",1);  // activate branchname        
-  d3pd->SetBranchStatus("el_eta",1);  // activate branchname       
-  d3pd->SetBranchStatus("el_phi",1);  // activate branchname       
-  d3pd->SetBranchStatus("el_E",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_reta",1);  // activate branchname      
-  d3pd->SetBranchStatus("el_emaxs1",1);  // activate branchname    
-  d3pd->SetBranchStatus("el_Emax2",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_Ethad1",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_ws3",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_weta2",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_isEM",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_ringernn",1);  // activate branchname   
-  d3pd->SetBranchStatus("el_rings_E",1);  // activate branchname   
+
 }

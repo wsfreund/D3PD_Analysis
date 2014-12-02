@@ -79,7 +79,7 @@ template<class C> void clearVec(std::vector<C> &cntr){
 *   Empties a vector containing pointers C
 */
   for(typename std::vector<C>::iterator it = cntr.begin(); it != cntr.end(); ++it){
-    delete *it;
+    if(*it) delete *it;
   }
   cntr.clear();
 }
@@ -100,7 +100,7 @@ const std::string currentDateTime();
 * Returns current date/time, format is YYYY-MM-DD.HH:mm:ss
 */
 
-void enableUsedBranches(TTree *d3pd);
+void enableUsedBranches(TTree *d3pd, bool usePhoton = true);
 /*
 * Enables TChain used branches for analysis
 */
