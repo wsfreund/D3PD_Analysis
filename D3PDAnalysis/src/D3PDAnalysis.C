@@ -2016,19 +2016,29 @@ void D3PDAnalysis::drawROC(){
   ringerRoc.Draw("AL");
   std::vector<TMarker*> standardVec;
   std::vector<TLine*> lineVec;
-  TLegend legend(.58,.14,.98,.42);
+  TLegend legend(.38,.14,.78,.42);
+  Float_t min_x = 100, max_x = 0;
+  Float_t min_y = 100, max_y = 0;
+  TLine *line_vertical = 0;
+  for(unsigned i = 1; i<req_size;++i){
+    const Float_t std_det = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Signal))->second->GetEfficiency(i)*100;
+    const Float_t std_fa = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Background))->second->GetEfficiency(i)*100;
+    if(std_det > max_y) max_y = std_det;
+    if(std_det < min_y) min_y = std_det;
+    if(std_fa > max_x) max_x = std_fa;
+    if(std_fa < min_x) min_x = std_fa;
+  }
   for(unsigned i = 1; i<req_size;++i){
     const Float_t std_det = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Signal))->second->GetEfficiency(i)*100;
     const Float_t std_fa = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Background))->second->GetEfficiency(i)*100;
     standardVec.push_back(new TMarker(std_fa,std_det,rocEgMarker[i-1]));
     standardVec[i-1]->SetMarkerColor(rocEgColor[i-1]);
     standardVec[i-1]->Draw("same");
-    TLine *line_vertical = 0;
     // Check greater detection rate:
-    if ( (*nn_det_for_fixed_std_fa_rate)[i-1] > std_det ) // std_det = overall detection rate for standard eg
-      line_vertical = new TLine(std_fa, 0., std_fa, (*nn_det_for_fixed_std_fa_rate)[i-1]);
-    else 
-      line_vertical = new TLine(std_fa, 0., std_fa, std_det);
+    if ( (*nn_det_for_fixed_std_fa_rate)[i-1] > std_det ){ // std_det = overall detection rate for standard eg
+      line_vertical = new TLine(std_fa, min_y*0.9, std_fa, (*nn_det_for_fixed_std_fa_rate)[i-1]);
+    }else 
+      line_vertical = new TLine(std_fa, min_y*0.9, std_fa, std_det);
     line_vertical->SetLineStyle(kDashed);
     line_vertical->Draw();
     lineVec.push_back(line_vertical);
@@ -2047,10 +2057,19 @@ void D3PDAnalysis::drawROC(){
   legend.AddEntry(&ringerRoc,(alg[0] + std::string(" ROC")).c_str(),"l");
   legend.Draw();
   gPad->SetGrid();
+  
+  ringerRoc.GetYaxis()->SetRangeUser(min_y*0.9,100);
+  ringerRoc.GetXaxis()->SetRangeUser(0,max_x*1.1);
 
-  canvas.SaveAs( ( ana_name + "_roc.eps" ).c_str() );
-  canvas.SaveAs( ( ana_name + "_roc.gif" ).c_str() );
+  canvas.SaveAs( ( ana_name + "_roc.eps" ).c_str());
+  canvas.SaveAs( ( ana_name + "_roc.gif" ).c_str());
   canvas.Write(  (ana_name + "_roc").c_str(), TObject::kOverwrite);
+  
+  /*
+  canvas.SaveAs( ( ana_name + "_roc_zoom.eps" ).c_str() );
+  canvas.SaveAs( ( ana_name + "_roc_zoom.gif" ).c_str() );
+  canvas.Write(  (ana_name + "_roc_zoom").c_str(), TObject::kOverwrite);
+  */
 
   clearVec(standardVec);
   clearVec(lineVec);
