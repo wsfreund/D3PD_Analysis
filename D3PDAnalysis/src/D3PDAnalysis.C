@@ -49,6 +49,14 @@ void D3PDAnalysis::printMaps() const{
       std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
     }
   }
+  if(et_notMother_energy_map){
+    std::cout << "---------------------" << std::endl;
+    std::cout << "Energy Signal Not From Mother Map Keys: " << et_notMother_energy_map->size() << std::endl;
+    for(std::map<Key_t1,TH1F*>::iterator i=et_notMother_energy_map->begin();
+    	i!=et_notMother_energy_map->end();++i){
+    	std::cout << "Integral(Hist) = "<< i->second->Integral() << "\t" <<  i->first << std::endl;
+    }
+  }
   if(et_energy_test_map){
     std::cout << "---------------------" << std::endl;
     std::cout << "Energy Test Map Keys: " << et_energy_test_map->size() << std::endl;
@@ -132,8 +140,18 @@ void D3PDAnalysis::printMaps() const{
         i->second->GetTotalHistogram()->Integral() << "\t" <<  i->first << std::endl;
     }
   }
-
+  
+  if(bkgFromSignalGlobal_eff){
+    std::cout << "---------------------" << std::endl;
+    std::cout << "Background from Signal Efficiency Map Keys: " << bkgFromSignalGlobal_eff->size() << std::endl;
+    for(std::map<Key_t1,TEfficiency*>::iterator i=bkgFromSignalGlobal_eff->begin();
+        i!=bkgFromSignalGlobal_eff->end();++i){
+      std::cout << "Integral(Hist) = "<< i->second->GetPassedHistogram()->Integral() << "/" << 
+        i->second->GetTotalHistogram()->Integral() << "\t" <<  i->first << std::endl;
+    }
+  }
 }
+
 
 
 //========================================================================
@@ -169,22 +187,27 @@ void D3PDAnalysis::setEtHists(){
 
   // Create map:
   et_energy_map = new std::map<Key_t1,TH1F*>();
+  et_notMother_energy_map = new std::map<Key_t1,TH1F*>();
 
   for(unsigned i = 0; i < ds_size;++i){
-    TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,1);
-    // Root 6 way to set rebinable axis: 
+    TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(";E_{T} (GeV)")).c_str(),100,0,500);
+    TH1F *hist_electronNotSignal = new TH1F( make_str(ds[i]), ( ds[i] + std::string(": Electrons not from Z;E_{T} (GeV)")).c_str(),100,0,500);
+// Root 6 way to set rebinable axis: 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
     hist->GetXaxis()->SetCanExtend(kTRUE);
+    hist_electronNotSignal->GetXaxis()->SetCanExtend(kTRUE);
 #else
     hist->SetBit(TH1::kCanRebin);
+    hist_electronNotSignal->SetBit(TH1::kCanRebin);
 #endif
     et_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist));
+    et_notMother_energy_map->insert(std::make_pair(Key_t1(ds[i]),hist_electronNotSignal));
   }
 
   if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
     et_energy_test_map = new std::map<Key_t1,TH1F*>();
     for(unsigned i = 0; i < ds_size;++i){
-      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,1);
+      TH1F *hist = new TH1F( make_str(ds[i]), (ds[i] + std::string(" test;E_{T} (GeV)")).c_str(),100,0,500);
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
       hist->GetXaxis()->SetCanExtend(kTRUE);
 #else
@@ -475,14 +498,24 @@ void D3PDAnalysis::setCorrHists(){
 //========================================================================
 //========================================================================
 void D3PDAnalysis::setDetailedTruthEff(){
-
   // Create map:
   detailedTruthCounter_map = new std::map<Key_t1,TH1F*>();
   detailedTruthEff_map = new std::map<Key_t1,TEfficiency*>();
+  bkgFromSignalGlobal_eff = new std::map<Key_t1,TEfficiency*>();
+
+  // Algorithms BkgFromSignal False Alarm:
+  for(size_t m = 0; m < alg_size;++m){
+      bkgFromSignalGlobal_eff->insert(std::make_pair(Key_t1(alg[m]),
+      new TEfficiency( 
+          (std::string("False Alarm for ") + alg[m] + " and Dataset: BackgroundFromSignalDs").c_str(),
+          (std::string("False Alarm for ") + alg[m] + " and Dataset: BackgroundFromSignalDs").c_str(),
+          eg_key::Tight*(eg_key::Tight+1)-1,eg_key::Loose,eg_key::Tight*(eg_key::Tight+1)))
+    );
+  }
 
   for(size_t i = 0; i < nDs;++i){
     for(size_t m = 0; m < alg_size;++m){
-      TH1F* hist = new TH1F( 
+      TH1F* hist = new TH1F(
         (std::string(" Alldata Particles counter Dataset ") + ds[i] + " and Algorithm:" + alg[m]).c_str(),
         (std::string(" Alldata Particles counter Dataset ") + ds[i] + " and Algorithm:" + alg[m]).c_str(),
         truth::LastTPart,truth::TruthSignal,truth::LastTPart);
@@ -502,6 +535,7 @@ void D3PDAnalysis::setDetailedTruthEff(){
     }
   }
 
+  
   for(std::map<Key_t1,TH1F*>::iterator i=detailedTruthCounter_map->begin();
       i!=detailedTruthCounter_map->end();++i){
   // Set root to calculate error bars for all efficiency hists:
@@ -717,6 +751,9 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       if(doUseRingerTestOnStd&&!isTest) // if we want to use same test to both algorithms
         continue; // then we continue when it is not a ringer test clusters
 
+      // if tagAndProbe blablabla
+
+
       const unsigned &el_isEM = (*d3pd->el_isEM)[index];
 
       // Re-define more useful variables:
@@ -827,6 +864,18 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         if(isTest)
           et_energy_test_map->find(Key_t1(ds))->second->Fill(el_et);
       }
+      if(doTruth){
+        const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
+        const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
+	if(TMath::Abs(el_truth_type) == signalPdgId && (el_truth_mothertype != signalMotherPdgId)){
+	  if(d3pd == sgn)
+	    ds = eg_key::Signal;
+	  else
+	    ds = eg_key::Background;
+	  et_notMother_energy_map->find(Key_t1(ds))->second->Fill(el_et);
+	}
+	
+      }
 
       // Fill high binnage hist for ROC:
       if ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) && 
@@ -922,7 +971,14 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
       // If doing signal and using truth info, we need to add full ds:
       if(d3pd == sgn && doTruth){
+        const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
+        const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
         et_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
+	
+	if((TMath::Abs(el_truth_type) == signalPdgId) && (el_truth_mothertype != signalMotherPdgId)){
+	  et_notMother_energy_map->find(Key_t1(full_ds))->second->Fill(el_et);
+	}
+
         if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd){
           if(isTest)
             et_energy_test_map->find(Key_t1(full_ds))->second->Fill(el_et);
@@ -1033,19 +1089,30 @@ void D3PDAnalysis::fillDetailedTruthCounterFor(const truth::TRUTH_PARTICLE parti
   detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffEgamma))->second // then get hist
     ->Fill(particle); // and fill it
   for(size_t n = eg_key::Loose; n < req_size;++n){
-    if( !(el_isEM & stdeg_req[n])) // Did it pass stdeg_req[k]?
+    bool isPassedStd = !(el_isEM & stdeg_req[n]);
+    if (isPassedStd){ // Did it pass stdeg_req[k]?
       detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffEgamma,req[n]))->second // then get hist
         ->Fill(particle); // and fill it
+    }
     // else break;
+    //Fill false alarm for backgroundFromSignalDs
+    if (particle != truth::TruthSignal && ds == eg_key::SignalFullDs ){
+      bkgFromSignalGlobal_eff->find(Key_t1(eg_key::OffEgamma))->second->Fill(isPassedStd,n);
+    }
   }
   if(isTest){
     detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger))->second // then get hist
       ->Fill(particle); // and fill it
     for(size_t n = eg_key::Loose; n < req_size;++n){
-      if((el_nnOutput > ring_req[n])) // Did it pass ring_req[k]?
+      bool isPassedRinger = el_nnOutput > ring_req[n];
+      if(isPassedRinger) // Did it pass ring_req[k]?
         detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger,req[n]))->second // then get hist
           ->Fill(particle); // and fill it
       // else break;
+      //Fill false alarm for backgroundFromSignalDs
+      if (particle != truth::TruthSignal && ds == eg_key::SignalFullDs ){
+        bkgFromSignalGlobal_eff->find(Key_t1(eg_key::OffRinger))->second->Fill(isPassedRinger,n);
+      }
     }
   }
 }
@@ -1334,6 +1401,7 @@ void D3PDAnalysis::fillEfficiency(){
           TEfficiency *eff_holder = detailedTruthEff_map->find(key_num)->second; // Efficiency histogram
           eff_holder->SetTotalHistogram(*detailedTruthCounter_map->find(key_den)->second,"f"); // Denominator Distribution histogram
           eff_holder->SetPassedHistogram(*detailedTruthCounter_map->find(key_num)->second,"f"); // Numerator Distribution histogram
+          eff_holder->SetPassedHistogram(*detailedTruthCounter_map->find(key_num)->second,"f"); // Numerator Distribution histogram
         }
       }
     }
@@ -1410,9 +1478,12 @@ void D3PDAnalysis::draw(){
 #endif
 
   // Drawing sequence:
+  
   drawEnergyDistPlots(et_energy_map); outFile->Flush();
+  if(doTruth) {drawEnergyDistPlots(et_notMother_energy_map); outFile->Flush();}
   if((useTestOnlySgn||useTestOnlyBkg)&&!doUseRingerTestOnStd) drawEnergyDistPlots(et_energy_test_map);
   if(doTruth) {drawStableParticlesPlots(); outFile->Flush();}
+  
   if(doDetailedTruth) {drawDetailedTruth(); outFile->Flush();}
   drawNeuralOutputPlots(); outFile->Flush();
   drawEfficiencyPlots(); outFile->Flush();
@@ -1442,9 +1513,14 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   }
   std::vector<TH1F*> energyHists; // Use vector just to sort it easier
   TH1F* histFullSignal = theEnergyMap->find(Key_t1(eg_key::SignalFullDs))->second;
-  for(std::map<Key_t1,TH1F*>::iterator i=theEnergyMap->begin();
-      i!=theEnergyMap->end();++i){
+  
+  Double_t totalDataSize = 0;
+  for(std::map<Key_t1,TH1F*>::iterator i=theEnergyMap->begin(); i!=theEnergyMap->end(); ++i){
     TH1F *hist = i->second;
+    
+    if(i->first.get_ds() == eg_key::Signal || i->first.get_ds() == eg_key::Background)
+	totalDataSize += hist->Integral();
+    
     if(doTruth)
       switch (i->first.get_ds()){
         case eg_key::BackgroundFromSignalDs:
@@ -1478,11 +1554,15 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   energyHists[0] = histClone;
   if(theEnergyMap==et_energy_test_map)
     histClone->SetTitle("Ringer Test Data E_{T} Distribution");
+  else if(theEnergyMap==et_notMother_energy_map)
+    histClone->SetTitle("Data E_{T} Distribution: Electrons not from Z");
   else
     histClone->SetTitle("Data E_{T} Distribution");
   histClone->Draw();
-  for(std::vector<TH1F*>::iterator i=(energyHists.begin()+1);
-      i!=energyHists.end();++i){
+  for(std::vector<TH1F*>::iterator i=(energyHists.begin()+1); i!=energyHists.end();++i){
+    if(theEnergyMap==et_notMother_energy_map && (std::string((*i)->GetName()) == std::string(make_str(eg_key::BackgroundFromSignalDs))
+	|| std::string((*i)->GetName()) == std::string(make_str(eg_key::SignalFullDs))))
+      continue;
     (*i)->Draw("sames");
   }
   // Now prepare to change PaveStats:
@@ -1506,8 +1586,11 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
   }
   // Set log scale:
   gPad->SetLogy();
-
+  
   std::string output = "_data_energy_dist";
+  
+  if(theEnergyMap==et_notMother_energy_map)
+    output = "_data_notMother_energy_dist";
   if(theEnergyMap==et_energy_test_map)
     output += "_test";
   // And save TCanvas:
@@ -1518,6 +1601,7 @@ void D3PDAnalysis::drawEnergyDistPlots(std::map<Key_t1,TH1F*> *theEnergyMap){
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::drawEnergyDistPlots()" << std::endl;
+
 #endif
 }
 
@@ -1735,8 +1819,6 @@ void D3PDAnalysis::drawEfficiencyPlots(){
   effBaseDir = outFile->mkdir(efficiencyDirName.c_str());
   effBaseDir->cd();
 
-
-
   // Draw TEfficiency to force graphs creation, and remove x erros bars:
   for(size_t i = 0; i < ds_size;++i){
     TCanvas dummy("","");
@@ -1771,6 +1853,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
       canvas.Divide(1,2);
       TLegend legend(.01,.48,.32,.52);
       legend.SetNColumns(req_size-1);
+      Double_t min_y, max_y;
       for(size_t n = 1; n < req_size;++n){
         // Set marker and colors
         for(size_t j = 0; j < var_size;++j){
@@ -1794,6 +1877,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram
+          min_y = 1., max_y = .0;
+          for(size_t n = 1; n < req_size;++n){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Et))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           et_graph->Draw("samepze0");
           gPad->SetGrid();
         }else {
@@ -1814,6 +1909,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram =======
+          min_y = 1., max_y = .0;
+          for(size_t n = 1; n < req_size;++n){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Eta))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           eta_graph->Draw("samepze0");
           gPad->SetGrid();
         }else{
@@ -1838,6 +1945,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
         ( ds[i] + std::string(" Algorithms Comparison for ") + req[n] ).c_str());
       canvas.Divide(1,2);
       TLegend legend(.01,.45,.32,.53);
+      Double_t min_y, max_y;
       for(size_t m = 0; m < alg_size;++m){
         for(size_t j = 0; j < var_size;++j){
           Key_t1 key(ds[i],alg[m],req[n],var[j]); // Numerator Key
@@ -1865,6 +1973,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram
+          min_y = 1., max_y = .0;
+          for(size_t m = 0; m < alg_size;++m){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Et))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           et_graph->Draw("samepze0");
           pad->SetGrid();
         }else {
@@ -1876,6 +1996,7 @@ void D3PDAnalysis::drawEfficiencyPlots(){
         garbageCollector.push_back(eta_graph);
         // Deslocate clone to make it possible to see overlaps:
         deslocate(eta_graph,(m*.005-0.0025));
+                
         if(!m){
           TH1F *th1 = pad->DrawFrame(var_lb[eg_key::Eta], 0., var_ub[eg_key::Eta], 1.);
           th1->GetYaxis()->SetTitle(yAxis_special[i].c_str());
@@ -1884,6 +2005,18 @@ void D3PDAnalysis::drawEfficiencyPlots(){
           th1->GetYaxis()->SetTitleSize(.06);
           th1->GetXaxis()->SetTitleOffset(.7);
           th1->GetYaxis()->SetTitleOffset(.5);
+          // Get max and min value of y to zoom histogram
+          min_y = 1., max_y = .0;
+          for(size_t m = 0; m < alg_size;++m){
+            Double_t tmin_x,tmax_x,tmin_y,tmax_y;
+            TGraphAsymmErrors *tmp_graph = static_cast<TGraphAsymmErrors*>(efficiency_map->find(Key_t1(ds[i],alg[m],req[n],eg_key::Eta))->second->GetPaintedGraph()->Clone());
+            tmp_graph->ComputeRange(tmin_x,tmin_y,tmax_x,tmax_y);
+            if(tmin_y < min_y) min_y = tmin_y;
+            if(tmax_y > max_y) max_y = tmax_y;
+          }
+          min_y = TMath::Floor(min_y*10)/10;
+          max_y = TMath::Ceil(max_y*10)/10;
+          th1->GetYaxis()->SetRangeUser(min_y,max_y);
           eta_graph->Draw("samepze0");
           pad->SetGrid();
         }else{
@@ -1918,7 +2051,6 @@ void D3PDAnalysis::deslocate(TGraph* graph, Double_t xDes){
     graph->SetPoint(point,point_x+xDes,point_y);
   }
 }
-
 
 //========================================================================
 //========================================================================
@@ -2123,7 +2255,6 @@ void D3PDAnalysis::printEffHtmlTable(const char *effName){
     std::cout << "On printEffHtmlTable()" << std::endl;
 #endif
 
-
   gSystem->cd(ana_place.c_str()); // Get back to base analysis dir
 
   eg_key::DATASET ds;
@@ -2224,6 +2355,11 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
   outFile << "<td width=\"75\">Tight</td>" << std::endl;
   outFile << "</tr>" << std::endl;
   outFile.precision(2); // std::streamsize oldPres = 
+  
+  Float_t totalFaPerc_ringer = 0;
+  Float_t totalFaPerc_std = 0;
+  Float_t totalFaPerc = 0;
+  
   for(size_t j = 0; j < truth::LastTPart;++j){
     outFile << "<tr>" << std::endl;
     if(doTestOnly){
@@ -2234,27 +2370,54 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
       if(!j)
         outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (R:" << perc_ringer << "/S:" << perc_std 
           << "\%) [DET]</td>" << std::endl;
-      else
+      else{
         outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (R:" << perc_ringer << "/S:" << perc_std 
           << "\%) [FA]</td>" << std::endl;
+        totalFaPerc_ringer +=  perc_ringer;
+        totalFaPerc_std += perc_std;
+      }
     } else {
       TH1F *counter_holder = detailedTruthCounter_map->find(Key_t1(ds,eg_key::OffRinger))->second;
       Float_t perc = counter_holder->GetBinContent(j+1)/counter_holder->Integral()*100;
       if(!j)
         outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [DET]</td>" << std::endl;
-      else
+      else{
         outFile << "<td>" << make_str(truth::TRUTH_PARTICLE(j)) << " (" << perc << "\%) [FA]</td>" << std::endl;
+        totalFaPerc += perc;
+      }
     }
     for(size_t k = 0; k < alg_size;++k){
       for(size_t m = eg_key::Loose; m < req_size;++m){
         TEfficiency *eff_holder = detailedTruthEff_map->find(Key_t1(ds,req[m],alg[k]))->second;
-        outFile<<"<td>"<<eff_holder->GetEfficiency(j+1)*100 << "</br>(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
+        outFile << "<td>" << eff_holder->GetEfficiency(j+1)*100 << "</br>(+" << eff_holder->GetEfficiencyErrorUp(j+1)*100
           << "-" << eff_holder->GetEfficiencyErrorLow(j+1)*100 << ")</td>";
       }
       outFile << std::endl;
     }
     outFile << "</tr>" <<  std::endl;
   }
+  outFile << "<tr>" <<  std::endl;
+
+  if(doTestOnly)
+    outFile << "<td> Total (R:" << totalFaPerc_ringer << "/S:" << totalFaPerc_std << "\%) [FA]</td>" << std::endl;
+  else
+    outFile << "<td> Total (" << totalFaPerc << "\%) [FA]</td>" << std::endl;
+  
+  // Here we set dataset to BackgroundFromSignalDs because we want to
+  // fill another line in the table with all background particles
+  // false alarm
+  for(size_t k = 0; k < alg_size;++k){
+    for(size_t m = eg_key::Loose; m < req_size;++m){
+      TEfficiency *eff_holder = global_eff->find(Key_t1(alg[k],ds))->second;
+      if(d3pd == sgn)
+        eff_holder = bkgFromSignalGlobal_eff->find(Key_t1(alg[k]))->second;
+      outFile << "<td>" << eff_holder->GetEfficiency(m)*100 << "</br>(+" << eff_holder->GetEfficiencyErrorUp(m)*100
+        << "-" << eff_holder->GetEfficiencyErrorLow(m)*100 << ")</td>";
+    }
+    outFile << std::endl;
+  }
+  outFile << "</tr>" <<  std::endl;
+
   outFile << "</table></br></br>" << std::endl;
   //outFile.unsetf(std::ios::fixed);
   //outFile.precision(oldPres);
@@ -2263,8 +2426,6 @@ void D3PDAnalysis::printDetailedTruthHtmlTable(const egammaD3PD *d3pd){
     std::cout << "Finished printDetailedTruthHtmlTable()" << std::endl;
 #endif
 }
-
-
 
 //========================================================================
 //========================================================================

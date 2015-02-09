@@ -188,6 +188,7 @@ private:
 
   // Hist maps:
   std::map<Key_t1,TH1F*> *et_energy_map; // Contains Tranverse Energy Distribution
+  std::map<Key_t1,TH1F*> *et_notMother_energy_map; // Contains Tranverse Energy Distribution for electrons not from Z
   std::map<Key_t1,TH1F*> *et_energy_test_map; // Contains Tranverse Energy Distribution for test data
   std::map<Key_t1,TH1F*> *nn_output_map; // Contains neural network output for the precision region
   std::map<Key_t1,TH1F*> *nn_output_crack_map; // Contains neural network output for the crack region
@@ -198,6 +199,7 @@ private:
   std::map<Key_t1,TH2F*> *corr_map; // Neural network output versus standard variables
   std::map<Key_t1,TH1F*> *detailedTruthCounter_map; // Similar to particles map, but to filtered pdgId
   std::map<Key_t1,TEfficiency*> *detailedTruthEff_map; // Efficiency to filtered pdgIds
+  std::map<Key_t1,TEfficiency*> *bkgFromSignalGlobal_eff; // Similar to particles map, but to backgroundFromSignal particles
 
   // Output root file:
   TFile *outFile;
@@ -321,10 +323,11 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   // Members not configurable by user using constructor:
   useTestOnlySgn(false), useTestOnlyBkg(false), 
   hgres(100000),
-  et_energy_map(0),et_energy_test_map(0),
+  et_energy_map(0),et_notMother_energy_map(0),et_energy_test_map(0),
   nn_output_map(0),nn_output_crack_map(0),particles_map(0),
   var_dist_map(0),efficiency_map(0),corr_map(0),
-  detailedTruthCounter_map(0),detailedTruthEff_map(0),outFile(0),
+  detailedTruthCounter_map(0),detailedTruthEff_map(0),
+  bkgFromSignalGlobal_eff(0),outFile(0),
   energyDistDirName(std::string("EnergyDistribution")), 
   particlesDirName(std::string("McParticles")),
   nnOutputDirName(std::string("NNOutput")),
@@ -473,6 +476,10 @@ D3PDAnalysis::~D3PDAnalysis(){
     clearHistMap(et_energy_map);
     delete et_energy_map;
   }
+  if(et_notMother_energy_map){
+    clearHistMap(et_notMother_energy_map);
+    delete et_notMother_energy_map;
+  }
   if(et_energy_test_map){
     clearHistMap(et_energy_test_map);
     delete et_energy_test_map;
@@ -508,6 +515,10 @@ D3PDAnalysis::~D3PDAnalysis(){
   if(detailedTruthEff_map){
     clearHistMap(detailedTruthEff_map);
     delete detailedTruthEff_map;
+  }
+  if(bkgFromSignalGlobal_eff){
+    clearHistMap(bkgFromSignalGlobal_eff);
+    delete bkgFromSignalGlobal_eff;
   }
   if(outFile){
     outFile->Close("R");
