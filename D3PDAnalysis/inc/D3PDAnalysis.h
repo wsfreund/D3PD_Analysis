@@ -189,7 +189,8 @@ private:
   // Hist maps:
   std::map<Key_t1,TH1F*> *et_energy_map; // Contains Tranverse Energy Distribution
   std::map<Key_t1,TH1F*> *et_energy_test_map; // Contains Tranverse Energy Distribution for test data
-  std::map<Key_t1,TH1F*> *nn_output_map; // Contains neural network output
+  std::map<Key_t1,TH1F*> *nn_output_map; // Contains neural network output for the precision region
+  std::map<Key_t1,TH1F*> *nn_output_crack_map; // Contains neural network output for the crack region
   std::map<Key_t1,TH1F*> *particles_map; // Contains truth particles and the algorithm outputs for them
   std::map<Key_t1,TH1F*> *var_dist_map; // Contains the clusters output over eta, et, phi
   std::map<Key_t1,TEfficiency*> *efficiency_map; // Efficiency over eta, et, phi
@@ -237,11 +238,11 @@ private:
   Float_t pid_thres[pid_size]; 
 
 #if __cplusplus >= 201103L
-  constexpr static const Float_t crack_lb = 1.4;
-  constexpr static const Float_t crack_ub = 1.6;
+  constexpr static const Float_t crack_lb = 1.37;
+  constexpr static const Float_t crack_ub = 1.52;
 #else
-  static const Float_t crack_lb = 1.4;
-  static const Float_t crack_ub = 1.6;
+  static const Float_t crack_lb = 1.37;
+  static const Float_t crack_ub = 1.52;
 #endif
 
   std::vector<unsigned> stdeg_req;  // Keep same logic as for req
@@ -284,6 +285,10 @@ private:
   static const eg_key::POSITION pos[pos_size];
   static const eg_key::PID pid[pid_size];
 
+  // Special efficiency binnage:
+  static const double eta_bins[];
+  static const double et_bins[];
+
 };
 
 const eg_key::ALGORITHM D3PDAnalysis::alg[D3PDAnalysis::alg_size] = 
@@ -296,6 +301,13 @@ const eg_key::POSITION D3PDAnalysis::pos[D3PDAnalysis::pos_size] =
   {eg_key::Barrel, eg_key::Endcap, eg_key::CrackRegion, eg_key::PrecisionRegion};
 const eg_key::PID D3PDAnalysis::pid[D3PDAnalysis::pid_size] =
   {eg_key::rEta, eg_key::eRatio, eg_key::wEta, eg_key::wEta2, eg_key::HadLeakage};
+
+const double D3PDAnalysis::eta_bins[] = 
+    {-2.5,-2.47,-2.37,-2.01,-1.81,-1.52,-1.37,-1.15,-0.8,-0.6,-0.1, 
+      0,
+      0.1,0.6,0.8,1.15,1.37,1.52,1.81,2.01,2.37,2.47,2.5};
+const double D3PDAnalysis::et_bins[] = 
+    {0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 120};
 
 inline
 D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_name,
@@ -310,7 +322,7 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   useTestOnlySgn(false), useTestOnlyBkg(false), 
   hgres(100000),
   et_energy_map(0),et_energy_test_map(0),
-  nn_output_map(0),particles_map(0),
+  nn_output_map(0),nn_output_crack_map(0),particles_map(0),
   var_dist_map(0),efficiency_map(0),corr_map(0),
   detailedTruthCounter_map(0),detailedTruthEff_map(0),outFile(0),
   energyDistDirName(std::string("EnergyDistribution")), 
@@ -394,7 +406,7 @@ D3PDAnalysis::D3PDAnalysis(TChain *sgnChain, TChain *bkgChain, const char *ana_n
   reqEffMarkerStyle[eg_key::Medium] = kDot; reqEffMarkerStyle[eg_key::Tight] = kDot;
 
   // Colors for algorithms for same requirement comparison:
-  compEffColor[eg_key::OffRinger] = kBlack; compEffColor[eg_key::OffEgamma] = kRed;
+  compEffColor[eg_key::OffRinger] = kRed; compEffColor[eg_key::OffEgamma] = kBlack;
 
   // Marker styles for algorithms for same requirement comparison:
   compEffMarkerStyle[eg_key::OffRinger] = kDot; compEffMarkerStyle[eg_key::OffEgamma] = kDot;
@@ -468,6 +480,10 @@ D3PDAnalysis::~D3PDAnalysis(){
   if(nn_output_map){ 
     clearHistMap(nn_output_map);
     delete nn_output_map;
+  }
+  if(nn_output_crack_map){ 
+    clearHistMap(nn_output_crack_map);
+    delete nn_output_crack_map;
   }
   if(particles_map){  
     clearHistMap(particles_map);

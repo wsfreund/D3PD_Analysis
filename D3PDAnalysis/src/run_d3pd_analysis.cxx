@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
   running_opts.doHtmlOutput = true;
   running_opts.doTexOutput = true;
   running_opts.doROC = true;
-  running_opts.doUseRingerTestOnStd = false;
+  running_opts.doUseRingerTestOnStd = true;
   running_opts.anaName = "CaloRinger_Analysis_ElectronVsJet";
   running_opts.anaDir = "";
   running_opts.high_resolution_bin = 10000;
@@ -297,7 +297,7 @@ void help(){
             << "      Create tex tables containing efficiencies. \n\n"
             << "    --doROC [bool] >1 \n"
             << "      Print ROC. \n\n"
-            << "    --doUseRingerTestOnStd [bool] >0 \n"
+            << "    --doUseRingerTestOnStd [bool] >1 \n"
             << "      Use same test particles used on Ringer to Standard Egamma. \n\n"
             << "    --high_resolution_bin [Unsigned>1000] >10000 \n"
             << "      Number of bins on high resolutions histograms. \n\n"

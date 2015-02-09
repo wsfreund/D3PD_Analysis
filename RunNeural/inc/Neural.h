@@ -10,9 +10,11 @@ Universidade Federal do Rio de Janeiro
 #define NEURAL_H
 #define BAD_WEIGHT_SIZE 101
 #define BAD_BIAS_SIZE 102
+
+#include <vector>
+
 class Neural {
     std::vector<unsigned int> nodes;
-    std::vector<float> input;
     std::vector<float> weight;
     std::vector<float> bias;
     float ***wM;

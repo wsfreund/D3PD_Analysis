@@ -143,7 +143,7 @@ void D3PDAnalysis::setOverallEff(){
 
   global_eff = new std::map<Key_t1,TEfficiency*>();
 
-  // Algorithms Overall Eficiency:
+  // A̲l̲g̲o̲r̲i̲t̲h̲m̲s̲ ̲O̲v̲e̲r̲a̲l̲l̲ ̲E̲f̲i̲c̲i̲e̲n̲c̲y̲:̲ 
   for(size_t i = 0; i < ds_size;++i){
     for(size_t m = 0; m < alg_size;++m){
       global_eff->insert(std::make_pair(Key_t1(ds[i],alg[m]),
@@ -296,6 +296,28 @@ void D3PDAnalysis::setNNOutHits(){
           ));
   }
 
+  nn_output_crack_map = new std::map<Key_t1,TH1F*>();
+  // Now create hists:
+  for(size_t i = 0; i < ds_size;++i){
+    for(size_t j = 0; j < req_size;++j){
+      Key_t1 key(ds[i],req[j]);
+      TH1F* hist = new TH1F(
+        (std::string("NN Output (Crack Region) for ") + key.get_ds() + " Dataset " + " passed " + key.get_req() + " Standard e/#gamma Req").c_str(),
+        (std::string("NN Output (Crack Region) for ") + key.get_ds() + " Dataset " + " passed " + key.get_req() + " Standard e/#gamma Req; NN Output").c_str(),
+        100,-1,1);
+      hist->SetFillColor(neuralColors[i][j]);
+      nn_output_crack_map->insert(std::make_pair(key,hist));
+    }
+    // Insert hists with high binnage
+    if(ds[i]!=eg_key::SignalFullDs)
+      nn_output_crack_map->insert(
+          std::make_pair(
+            Key_t1(ds[i],eg_key::OffRinger,eg_key::AllDataHighRes),
+            new TH1F((std::string("OffRinger NN Output for ") + ds[i]).c_str(),
+              (std::string("OffRinger NN Output for ") + ds[i]).c_str(),hgres,-1,1)
+          ));
+  }
+
 
 #if DEBUG >= DEBUG_MSGS
   std::cout << "Finished D3PDAnalysis::setNNOutHits()" << std::endl;
@@ -320,26 +342,64 @@ void D3PDAnalysis::setEffVarHists(){
   for(size_t i = 0; i < ds_size;++i){
     for(size_t j = 0; j < var_size;++j){
       for(size_t m = 0; m < alg_size;++m){
-        // Base hists:
         Key_t1 key(ds[i],var[j],alg[m]);
-        var_dist_map->insert(
-            std::make_pair(key,
-              new TH1F(
-                (key.get_var() + std::string(" Distribution for ") + key.get_ds() + "and Algorithm " + key.get_alg()).c_str(),
-                (var_special[j] + std::string(" Distribution for ") + key.get_ds() + " and Algorithm " + key.get_alg()).c_str(),
-                100,var_lb[j],var_ub[j])
-            ));
+        if ( j == 1) {
+          var_dist_map->insert(
+              std::make_pair(key,
+                new TH1F(
+                  (key.get_var() + std::string(" Distribution for ") + key.get_ds() + "and Algorithm " + key.get_alg()).c_str(),
+                  (var_special[j] + std::string(" Distribution for ") + key.get_ds() + " and Algorithm " + key.get_alg()).c_str(),
+                  100,var_lb[j],var_ub[j])
+              ));
+        } else if ( j == 0 ) {
+          var_dist_map->insert(
+              std::make_pair(key,
+                new TH1F(
+                  (key.get_var() + std::string(" Distribution for ") + key.get_ds() + "and Algorithm " + key.get_alg()).c_str(),
+                  (var_special[j] + std::string(" Distribution for ") + key.get_ds() + " and Algorithm " + key.get_alg()).c_str(),
+                  sizeof(eta_bins)/sizeof(Double_t), eta_bins )
+              ));
+        } else if ( j == 2 ) {
+          var_dist_map->insert(
+              std::make_pair(key,
+                new TH1F(
+                  (key.get_var() + std::string(" Distribution for ") + key.get_ds() + "and Algorithm " + key.get_alg()).c_str(),
+                  (var_special[j] + std::string(" Distribution for ") + key.get_ds() + " and Algorithm " + key.get_alg()).c_str(),
+                  sizeof(et_bins)/sizeof(Double_t), et_bins )
+              ));
+        }
         for(size_t n = eg_key::Loose; n < req_size;++n){
           Key_t1 key(ds[i],alg[m],req[n],var[j]);
-          TH1F* hist = new TH1F( 
-            (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
-            (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
-             ";" + var_special[j] + var_units[j] ).c_str(),100,var_lb[j],var_ub[j]);
+          TH1F* hist = 0;
           TEfficiency* eff_holder = 0;
-          eff_holder = new TEfficiency(
-            (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
-            (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
-             ";" + var_special[j] + var_units[j] + ";" + yAxis_special[i] ).c_str(),100,var_lb[j],var_ub[j]);
+          if ( j == 1 ) {
+            hist = new TH1F( 
+              (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
+              (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
+               ";" + var_special[j] + var_units[j] ).c_str(),100,var_lb[j],var_ub[j]);
+            eff_holder = new TEfficiency(
+              (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
+              (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
+               ";" + var_special[j] + var_units[j] + ";" + yAxis_special[i] ).c_str(),100,var_lb[j],var_ub[j]);
+          } else if ( j == 0 ) {
+            hist = new TH1F( 
+              (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
+              (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
+               ";" + var_special[j] + var_units[j] ).c_str(), sizeof(eta_bins)/sizeof(Double_t), eta_bins );
+            eff_holder = new TEfficiency(
+              (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
+              (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
+               ";" + var_special[j] + var_units[j] + ";" + yAxis_special[i] ).c_str(), sizeof(eta_bins)/sizeof(Double_t), eta_bins);
+          } else if ( j == 2 ) {
+            hist = new TH1F( 
+              (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
+              (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
+               ";" + var_special[j] + var_units[j] ).c_str(), sizeof(et_bins)/sizeof(Double_t), et_bins );
+            eff_holder = new TEfficiency(
+              (key.get_var() + std::string(" distribution for ") + key.get_ds() + " passed " + key.get_alg() + " " + key.get_req()).c_str(),
+              (var_special[j] + std::string(" distribution for ") +  key.get_ds() + " passed " + key.get_alg() + " " + key.get_req() +
+               ";" + var_special[j] + var_units[j] + ";" + yAxis_special[i] ).c_str(), sizeof(et_bins)/sizeof(Double_t), et_bins);
+          }
           hist->GetYaxis()->SetTitle(yAxis_special[i].c_str());
           var_dist_map->insert(std::make_pair(key,hist));
           efficiency_map->insert(std::make_pair(key,eff_holder));
@@ -562,37 +622,41 @@ void D3PDAnalysis::fastFillNeuralHists(egammaD3PD *d3pd){
 
       if(doTruth && d3pd==sgn){
         if((*d3pd->el_truth_matched)[index] &&
-          ((TMath::Abs((*d3pd->el_truth_type)[index]) == signalPdgId) &&
-          (*d3pd->el_truth_mothertype)[index] == signalMotherPdgId) && 
-          (ds == eg_key::BackgroundFromSignalDs))
+            ((TMath::Abs((*d3pd->el_truth_type)[index]) == signalPdgId) &&
+            (*d3pd->el_truth_mothertype)[index] == signalMotherPdgId) && 
+            (ds == eg_key::BackgroundFromSignalDs))
           ds = eg_key::Signal;
       }
 
+      const Float_t &el_eta = (*d3pd->el_eta)[index];
+
       // Algorithms Overall Eficiency:
-      for(unsigned i = eg_key::Loose; i < req_size; ++i){
-        bool isPassedStd = !(el_isEM & stdeg_req[i]);
-        // Overall algorithms efficiencies:
-        global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
-      }
+      if ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) && 
+            TMath::Abs(el_eta) < 2.47 ) {
+        for(unsigned i = eg_key::Loose; i < req_size; ++i){
+          bool isPassedStd = !(el_isEM & stdeg_req[i]);
+          // Overall algorithms efficiencies:
+          global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
+        }
 
-      // Use test dataset only:
-      if(!isTest)
-        continue;
-
-      // Define some useful variables:
-      const Float_t &el_nnOutput = (*d3pd->el_ringernn)[index];
-      // Fill high binnage hist for ROC:
-      nn_output_map->find(Key_t1(ds,eg_key::OffRinger,eg_key::AllDataHighRes))->second->Fill(el_nnOutput);
-      for(size_t i = 0; i < req_size;++i){
-        if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
-          // Fill neural output hists:
-          nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
-          if(doTruth && d3pd==sgn){
-            nn_output_map->find(Key_t1(full_ds,req[i]))->second->Fill(el_nnOutput);
+        // Use test dataset only:
+        if(isTest){
+          // Define some useful variables:
+          const Float_t &el_nnOutput = (*d3pd->el_ringernn)[index];
+          // Fill high binnage hist for ROC:
+          nn_output_map->find(Key_t1(ds,eg_key::OffRinger,eg_key::AllDataHighRes))->second->Fill(el_nnOutput);
+          for(size_t i = 0; i < req_size;++i){
+            if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
+              // Fill neural output hists:
+              nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
+              if(doTruth && d3pd==sgn){
+                nn_output_map->find(Key_t1(full_ds,req[i]))->second->Fill(el_nnOutput);
+              }
+            } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
           }
-        } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
+          ++testIdx;
+        }
       }
-      ++testIdx;
     }
   }
 
@@ -672,82 +736,88 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
       // Analysis using truth information:
       if(doTruth){
-        const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
-        const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
-        if((*d3pd->el_truth_matched)[index]){
-          // Define some truth useful variables:
-          // Fill particles hist map:
-          particles_map->find(Key_t1(full_ds))->second // then get hist
-            ->Fill(el_truth_type); // and fill it
-          for(unsigned k = eg_key::Loose; k < req_size;++k){
-            if( !(el_isEM & stdeg_req[k])) // Did it pass stdeg_req[k]?
-              particles_map->find(Key_t1(full_ds,eg_key::OffEgamma,req[k]))->second // then get hist
-                ->Fill(el_truth_type); // and fill it
-            // else break;
-          }
-          if(isTest){
+        if ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) && 
+              TMath::Abs(el_eta) < 2.47 ) {
+          const Int_t &el_truth_type = (*d3pd->el_truth_type)[index];
+          const Int_t &el_truth_mothertype = (*d3pd->el_truth_mothertype)[index];
+          if((*d3pd->el_truth_matched)[index]){
+            // Define some truth useful variables:
+            // Fill particles hist map:
+            particles_map->find(Key_t1(full_ds))->second // then get hist
+              ->Fill(el_truth_type); // and fill it
             for(unsigned k = eg_key::Loose; k < req_size;++k){
-              if( (el_nnOutput > ring_req[k])) // Did it pass ring_req[k]?
-                particles_map->find(Key_t1(full_ds,eg_key::OffRinger,req[k]))->second // then get hist
+              if( !(el_isEM & stdeg_req[k])) // Did it pass stdeg_req[k]?
+                particles_map->find(Key_t1(full_ds,eg_key::OffEgamma,req[k]))->second // then get hist
                   ->Fill(el_truth_type); // and fill it
-              // else  break;
+              // else break;
             }
+            if(isTest){
+              for(unsigned k = eg_key::Loose; k < req_size;++k){
+                if( (el_nnOutput > ring_req[k])) // Did it pass ring_req[k]?
+                  particles_map->find(Key_t1(full_ds,eg_key::OffRinger,req[k]))->second // then get hist
+                    ->Fill(el_truth_type); // and fill it
+                // else  break;
+              }
+            }
+            // Use truth to set if particle is or not signal:
+            if((TMath::Abs(el_truth_type) == signalPdgId) && 
+                (el_truth_mothertype == signalMotherPdgId) && 
+                (d3pd == sgn))
+              ds = eg_key::Signal;
           }
-          // Use truth to set if particle is or not signal:
-          if((TMath::Abs(el_truth_type) == signalPdgId) && 
-              (el_truth_mothertype == signalMotherPdgId) && 
-              (d3pd == sgn))
-            ds = eg_key::Signal;
-        }
-        if(doDetailedTruth){
-          // Detailed truth fill:
-          if((TMath::Abs(el_truth_type) == signalPdgId) && 
-              (el_truth_mothertype == signalMotherPdgId)){ // Then it s signal
-            fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput,isTest);
-          }else{ // It is not signal:
-            switch(TMath::Abs(el_truth_type)){
-              case truth::Electron_type:
-                fillDetailedTruthCounterFor(truth::Electron,full_ds,el_isEM,el_nnOutput,isTest);
-              break;
-              case truth::Photon_type:
-                if(el_truth_mothertype!=truth::Pion0_type)
+          if(doDetailedTruth){
+            // Detailed truth fill:
+            if((TMath::Abs(el_truth_type) == signalPdgId) && 
+                (el_truth_mothertype == signalMotherPdgId)){ // Then it s signal
+              fillDetailedTruthCounterFor(truth::TruthSignal,full_ds,el_isEM,el_nnOutput,isTest);
+            }else{ // It is not signal:
+              switch(TMath::Abs(el_truth_type)){
+                case truth::Electron_type:
+                  fillDetailedTruthCounterFor(truth::Electron,full_ds,el_isEM,el_nnOutput,isTest);
+                break;
+                case truth::Photon_type:
+                  if(el_truth_mothertype!=truth::Pion0_type)
+                    fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput,isTest);
+                  else
+                    fillDetailedTruthCounterFor(truth::Photon,full_ds,el_isEM,el_nnOutput,isTest);
+                break;
+                case truth::Pion_type:
                   fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput,isTest);
-                else
-                  fillDetailedTruthCounterFor(truth::Photon,full_ds,el_isEM,el_nnOutput,isTest);
-              break;
-              case truth::Pion_type:
-                fillDetailedTruthCounterFor(truth::Pion,full_ds,el_isEM,el_nnOutput,isTest);
-              break;
-              case truth::Kaon_type:
-              case truth::Kaon0s_type:
-              case truth::Kaon0l_type:
-                fillDetailedTruthCounterFor(truth::Kaon,full_ds,el_isEM,el_nnOutput,isTest);
-              break;
-              case truth::Unmatched_type:
-                fillDetailedTruthCounterFor(truth::Unmatched,full_ds,el_isEM,el_nnOutput,isTest);
-              break;
-              default:
-                fillDetailedTruthCounterFor(truth::Other,full_ds,el_isEM,el_nnOutput,isTest);
+                break;
+                case truth::Kaon_type:
+                case truth::Kaon0s_type:
+                case truth::Kaon0l_type:
+                  fillDetailedTruthCounterFor(truth::Kaon,full_ds,el_isEM,el_nnOutput,isTest);
+                break;
+                case truth::Unmatched_type:
+                  fillDetailedTruthCounterFor(truth::Unmatched,full_ds,el_isEM,el_nnOutput,isTest);
+                break;
+                default:
+                  fillDetailedTruthCounterFor(truth::Other,full_ds,el_isEM,el_nnOutput,isTest);
+              }
             }
           }
         }
       }
 
       // Algorithms Overall Eficiency:
-      for(unsigned i = eg_key::Loose; i < req_size; ++i){
-        bool isPassedStd = !(el_isEM & stdeg_req[i]);
-        bool isPassedRinger = el_nnOutput > ring_req[i];
-        // Overall algorithms efficiencies:
-        if(!doForceRingerThres)
-          global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
-        // Add ringer global efficiency only on test clusters:
-        if(isTest){
-          global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassedRinger,i);
-        }
-        // Ringer and standard egamma agreement are on both data:
-        for(unsigned j = eg_key::Loose; j < req_size; ++j){
-          bool isPassed = (el_nnOutput > ring_req[j]) && isPassedStd;
-          global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassed,j+i*eg_key::Tight);
+      if ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) && 
+            TMath::Abs(el_eta) < 2.47 ) {
+        for(unsigned i = eg_key::Loose; i < req_size; ++i){
+          bool isPassedStd = !(el_isEM & stdeg_req[i]);
+          bool isPassedRinger = el_nnOutput > ring_req[i];
+          // Overall algorithms efficiencies:
+          if(!doForceRingerThres)
+            global_eff->find(Key_t1(ds,eg_key::OffEgamma))->second->Fill(isPassedStd,i);
+          // Add ringer global efficiency only on test clusters:
+          if(isTest){
+            global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassedRinger,i);
+          }
+          // Ringer and standard egamma agreement are on both data:
+          for(unsigned j = eg_key::Loose; j < req_size; ++j){
+            bool isPassed = (el_nnOutput > ring_req[j]) && isPassedStd;
+            global_eff->find(Key_t1(ds,eg_key::OffRinger))->second->Fill(isPassed,j+i*eg_key::Tight);
+          }
         }
       }
 
@@ -759,12 +829,18 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
       }
 
       // Fill high binnage hist for ROC:
-      if(!doForceRingerThres&&isTest)
-          nn_output_map->find(Key_t1(ds,eg_key::OffRinger,eg_key::AllDataHighRes))->second->Fill(el_nnOutput);
+      if ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) && 
+            TMath::Abs(el_eta) < 2.47 ) {
+        if(!doForceRingerThres&&isTest)
+            nn_output_map->find(Key_t1(ds,eg_key::OffRinger,eg_key::AllDataHighRes))->second->Fill(el_nnOutput);
+      }
 
       // Fill base hists for efficiency calculation
-      for(size_t n = 0; n < var_size;++n){
-        var_dist_map->find(Key_t1(ds,var[n],eg_key::OffEgamma))->second->Fill(cur_var[n]);
+      if ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) && 
+            TMath::Abs(el_eta) < 2.47 ) {
+        for(size_t n = 0; n < var_size;++n){
+          var_dist_map->find(Key_t1(ds,var[n],eg_key::OffEgamma))->second->Fill(cur_var[n]);
+        }
       }
 
       // Fill Not Loose Correlation map:
@@ -774,38 +850,58 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         }
         if((el_isEM & stdeg_req[1])){
           for(size_t n = 0; n < pid_size;++n){
-            corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            if(TMath::Abs(el_eta)<crack_lb) // Barrel
-              corr_map->find(Key_t1(eg_key::Barrel,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-              corr_map->find(Key_t1(eg_key::Endcap,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else // Crack region
+            if ( ( TMath::Abs(el_eta) > 1.37 && TMath::Abs(el_eta) < 1.52 ) ||
+                  TMath::Abs(el_eta) > 2.47 ) { // Crack region
               corr_map->find(Key_t1(eg_key::CrackRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            } else {
+              // Crack precision region:
+              corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              if ( TMath::Abs(el_eta)<crack_lb ) { // Barrel
+                corr_map->find(Key_t1(eg_key::Barrel,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              } else { // EndCap
+                corr_map->find(Key_t1(eg_key::Endcap,ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              }
+            }
           }
         }
       }
+
       // Loop to fill other maps:
       for(size_t i = 0; i < req_size;++i){
         if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
           // Fill neural output hists:
-          if(!doForceRingerThres)
-            nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
+          if(!doForceRingerThres) {
+            if ( ( TMath::Abs(el_eta) > 1.37 && TMath::Abs(el_eta) < 1.52 ) ||
+                  TMath::Abs(el_eta) > 2.47 ) {
+              nn_output_crack_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
+            } else {
+              nn_output_map->find(Key_t1(ds,req[i]))->second->Fill(el_nnOutput);
+            }
+          }
           // If requirement is greater than Alldata:
           if(i){
             // Fill efficiency hists:
-            for(size_t n = 0; n < var_size;++n){
-              var_dist_map->find(Key_t1(ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
+            for (size_t n = 0; n < var_size;++n){
+              if ( ( n == 0 ) || ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) &&
+                    TMath::Abs(el_eta) < 2.47 ) ) {
+                var_dist_map->find(Key_t1(ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
+              }
             }
           }
           // Fill corr maps
           for(size_t n = 0; n < pid_size;++n){
-            corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            if(TMath::Abs(el_eta)<crack_lb) // Barrel
-              corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-              corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-            else // Crack region
+            if ( ( TMath::Abs(el_eta) > 1.37 && TMath::Abs(el_eta) < 1.52 ) ||
+                  TMath::Abs(el_eta) > 2.47 ) { // Crack region
               corr_map->find(Key_t1(eg_key::CrackRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+            } else {
+              // Cal Precision Region:
+              corr_map->find(Key_t1(eg_key::PrecisionRegion,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              if(TMath::Abs(el_eta)<crack_lb) { // Barrel
+                corr_map->find(Key_t1(eg_key::Barrel,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              } else {
+                corr_map->find(Key_t1(eg_key::Endcap,ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+              }
+            }
           }
         } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
       }
@@ -814,8 +910,11 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
           if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
             // Fill efficiency hists:
             for(size_t n = 0; n < var_size;++n){
-              // Fill 100 times to get percentage
-              var_dist_map->find(Key_t1(ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
+              if ( ( n == 0 ) || ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) &&
+                    TMath::Abs(el_eta) < 2.47 ) ) {
+                // Fill 100 times to get percentage
+                var_dist_map->find(Key_t1(ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
+              }
             }
           } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
         }
@@ -831,10 +930,13 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
 
         // Fill base hists for efficiency calculation
         for(size_t n = 0; n < var_size;++n){
-          var_dist_map->find(Key_t1(full_ds,var[n],eg_key::OffEgamma))->second->Fill(cur_var[n]);
+          if ( var == 0 || ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) &&
+              TMath::Abs(el_eta) < 2.47 ) ) {
+            var_dist_map->find(Key_t1(full_ds,var[n],eg_key::OffEgamma))->second->Fill(cur_var[n]);
+          }
         }
         if(isTest){
-          if((el_isEM & stdeg_req[1])){
+          if (( el_isEM & stdeg_req[1] )){
             for(size_t n = 0; n < pid_size;++n){
               corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,eg_key::NotLoose,pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
               if(TMath::Abs(el_eta)<crack_lb) // Barrel
@@ -849,39 +951,58 @@ void D3PDAnalysis::fillHistsFor(egammaD3PD *d3pd){
         for(size_t i = 0; i < req_size;++i){
           if( !(el_isEM & stdeg_req[i])){ // Did it pass stdeg_req[k]?
             // Fill neural output hists:
-            if(!doForceRingerThres)
-              nn_output_map->find(Key_t1(full_ds,req[i]))->second->Fill(el_nnOutput);
+            if(!doForceRingerThres){
+              if ( ( TMath::Abs(el_eta) > 1.37 && TMath::Abs(el_eta) < 1.52 ) ||
+                    TMath::Abs(el_eta) > 2.47 ) {
+                nn_output_crack_map->find(Key_t1(full_ds,req[i]))->second->Fill(el_nnOutput);
+              } else {
+                nn_output_map->find(Key_t1(full_ds,req[i]))->second->Fill(el_nnOutput);
+              }
+            }
             // If requirement is greater than Alldata:
             if(i){
               // Fill efficiency hists:
               for(size_t n = 0; n < var_size;++n){
-                var_dist_map->find(Key_t1(full_ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
+                if ( ( n == 0 ) || ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) &&
+                      TMath::Abs(el_eta) < 2.47 ) ) {
+                  var_dist_map->find(Key_t1(full_ds,eg_key::OffEgamma,req[i],var[n]))->second->Fill(cur_var[n]);
+                }
               }
             }
             // Fill corr maps
             if(isTest){
               for(size_t n = 0; n < pid_size;++n){
-                corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-                if(TMath::Abs(el_eta)<crack_lb) // Barrel
-                  corr_map->find(Key_t1(eg_key::Barrel,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-                else if(TMath::Abs(el_eta)>crack_ub) // Endcap
-                  corr_map->find(Key_t1(eg_key::Endcap,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
-                else // Crack region
+                if ( ( TMath::Abs(el_eta) > 1.37 && TMath::Abs(el_eta) < 1.52 ) ||
+                      TMath::Abs(el_eta) > 2.47 ) { // Crack region
                   corr_map->find(Key_t1(eg_key::CrackRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                } else {
+                  // PrecisionRegion:
+                  corr_map->find(Key_t1(eg_key::PrecisionRegion,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                  if(TMath::Abs(el_eta)<crack_lb){ // Barrel
+                    corr_map->find(Key_t1(eg_key::Barrel,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                  } else {
+                    corr_map->find(Key_t1(eg_key::Endcap,full_ds,req[i],pid[n]))->second->Fill(cur_pid[n],el_nnOutput);
+                  }
+                }
               }
             }
           } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
         }
         if(isTest){
           for(size_t n = 0; n < var_size;++n){
-            var_dist_map->find(Key_t1(full_ds,var[n],eg_key::OffRinger))->second->Fill(cur_var[n]);
+            if ( ( TMath::Abs(el_eta) > 1.37 && TMath::Abs(el_eta) < 1.52 ) ||
+                  TMath::Abs(el_eta) > 2.47 ) { // Crack region
+              var_dist_map->find(Key_t1(full_ds,var[n],eg_key::OffRinger))->second->Fill(cur_var[n]);
+            }
           }
           for(size_t i = 1; i < req_size;++i){
             if( (el_nnOutput > ring_req[i])){ // Did it pass ring_req[k]?
               // Fill efficiency hists:
               for(size_t n = 0; n < var_size;++n){
-                // Fill 100 times to get percentage
-                var_dist_map->find(Key_t1(full_ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
+                if ( ( n == 0 ) || ( ( TMath::Abs(el_eta) < 1.37 || TMath::Abs(el_eta) > 1.52 ) &&
+                      TMath::Abs(el_eta) < 2.47 ) ) {
+                  var_dist_map->find(Key_t1(full_ds,eg_key::OffRinger,req[i],var[n]))->second->Fill(cur_var[n]);
+                }
               }
             } // else break; // If it doesnt pass a loose requirement, it wont pass a tight one.
           }
