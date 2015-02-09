@@ -2032,9 +2032,54 @@ void D3PDAnalysis::drawROC(){
     lineVec.push_back(line_standard);
     legend.AddEntry(standardVec[i-1], (alg[1] + std::string(" ") + req[i] + " Req").c_str() ,"p");
   }
+
   legend.AddEntry(&ringerRoc,(alg[0] + std::string(" ROC")).c_str(),"l");
   legend.Draw();
   gPad->SetGrid();
+
+  const float lowY = global_eff->find(Key_t1(eg_key::OffEgamma,
+        eg_key::Signal))->second->GetEfficiency(eg_key::Tight)*100-2;
+  const float highX = global_eff->find(Key_t1(eg_key::OffEgamma,
+        eg_key::Background))->second->GetEfficiency(eg_key::Loose)*100+2;
+  TPad *zoomPad = new TPad("ZoomPad","ROC Detail", 0.35, 0.44, 0.93, 0.93);
+  TGraph ringerRoc2(hgres+1,&(*rocFaVec)[0],&(*rocDetVec)[0]);
+  ringerRoc2.SetTitle("ROC (Zoom)");
+  ringerRoc2.GetXaxis()->SetTitle((yAxis_special[eg_key::Background] + " (\%)").c_str());
+  //roc[0].GetXaxis()->SetNdivisions(120);
+  ringerRoc2.GetHistogram()->SetAxisRange(0, highX, "X");
+  ringerRoc2.GetYaxis()->SetTitle((yAxis_special[eg_key::Signal] + " (\%)").c_str());
+  ringerRoc2.SetName("ROC_Signal_vs_Background_Zoom");
+  ringerRoc2.SetLineColor(rocRingColor);
+  ringerRoc2.GetHistogram()->SetAxisRange(lowY,100,"Y");
+  ringerRoc2.Draw("AL");
+  for(unsigned i = 1; i<req_size;++i){
+    const Float_t std_det = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Signal))->second->GetEfficiency(i)*100;
+    const Float_t std_fa = global_eff->find(Key_t1(eg_key::OffEgamma,eg_key::Background))->second->GetEfficiency(i)*100;
+    standardVec.push_back(new TMarker(std_fa,std_det,rocEgMarker[i-1]));
+    standardVec[i-1]->SetMarkerColor(rocEgColor[i-1]);
+    standardVec[i-1]->Draw("same");
+    TLine *line_vertical = 0;
+    // Check greater detection rate:
+    if ( (*nn_det_for_fixed_std_fa_rate)[i-1] > std_det ) // std_det = overall detection rate for standard eg
+      line_vertical = new TLine(std_fa, lowY, std_fa, (*nn_det_for_fixed_std_fa_rate)[i-1]);
+    else 
+      line_vertical = new TLine(std_fa, lowY, std_fa, std_det);
+    line_vertical->SetLineStyle(kDashed);
+    line_vertical->Draw();
+    lineVec.push_back(line_vertical);
+    TLine *line_ringer = new TLine(0., (*nn_det_for_fixed_std_fa_rate)[i-1], std_fa, (*nn_det_for_fixed_std_fa_rate)[i-1]);
+    line_ringer->SetLineStyle(kDashed);
+    line_ringer->SetLineColor(kBlue);
+    line_ringer->Draw();
+    lineVec.push_back(line_ringer);
+    TLine *line_standard = new TLine(0., std_det, std_fa, std_det);
+    line_standard->SetLineStyle(kDashed);
+    line_standard->SetLineColor(kRed);
+    line_standard->Draw();
+    lineVec.push_back(line_standard);
+  }
+  zoomPad->SetGrid();
+  zoomPad->Draw();
 
   canvas.SaveAs( ( ana_name + "_roc.eps" ).c_str() );
   canvas.SaveAs( ( ana_name + "_roc.gif" ).c_str() );
